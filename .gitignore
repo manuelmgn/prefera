@@ -1,0 +1,15 @@
+# Database
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# Binary
+proj_listas
+
+# Environment
+.env
+*.env
+
+# OS
+.DS_Store

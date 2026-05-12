@@ -1,0 +1,86 @@
+{{define "versus"}}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Versus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,800&display=swap" rel="stylesheet">
+    <script src="/static/vendor/htmx.min.js" defer></script>
+    <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'SF Pro Display', 'system-ui', '-apple-system', 'sans-serif'] } } } }
+    </script>
+    <style>
+        /* Usar dvh para evitar problemas com a barra do browser em mobile */
+        .h-dvh { height: 100dvh; }
+
+        .vs-badge {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800;
+            color: #FFD700;
+            text-shadow: 0 0 30px rgba(255,215,0,0.5), 0 0 60px rgba(255,215,0,0.2), 0 2px 4px rgba(0,0,0,0.5);
+            letter-spacing: 0.05em;
+        }
+        .glass-pill {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .pill-anim { animation: slideDown 0.3s ease-out; }
+
+        /* Efeito de selecçom sutil ao clicar */
+        @keyframes chosenPulse {
+            0% { opacity: 0; transform: scale(0.8); }
+            50% { opacity: 0.3; }
+            100% { opacity: 0; transform: scale(2.5); }
+        }
+        .duel-btn { position: relative; overflow: hidden; }
+        .duel-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 100px; height: 100px;
+            margin: -50px 0 0 -50px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.5) 0%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .duel-btn:active::after {
+            animation: chosenPulse 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="font-sans m-0 p-0 overflow-hidden h-dvh bg-gray-900 antialiased">
+    <!-- Contador -->
+    <div id="versus-counter"
+         class="pill-anim fixed top-4 right-4 glass-pill text-white/80 px-4 py-2 rounded-full text-xs font-semibold z-50 border border-white/10">
+        <span id="counter-text">{{.Current}}/{{.Total}}</span>
+    </div>
+
+    <!-- Desfazer -->
+    <button class="versus-undo pill-anim fixed top-4 left-4 glass-pill text-white/80 border border-white/10 px-4 py-2 rounded-full text-xs font-semibold cursor-pointer z-50 hover:bg-white/20 transition-colors"
+            hx-post="/versus/{{.Session.ID}}/undo"
+            hx-target="#duel-area"
+            hx-swap="innerHTML"
+            {{if not .CanUndo}}style="display:none"{{end}}>
+        <svg class="w-3.5 h-3.5 inline -mt-0.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a5 5 0 015 5v2M3 10l4-4M3 10l4 4"/></svg>
+        Desfazer última
+    </button>
+
+    <!-- Sair do versus -->
+    <a href="/lists/{{.ListID}}/edit"
+       class="pill-anim fixed bottom-4 left-4 glass-pill text-white/60 border border-white/10 px-4 py-2 rounded-full text-xs font-semibold z-50 hover:bg-white/20 hover:text-white/80 transition-colors no-underline"
+       onclick="return confirm('Tens certeza? O progresso deste versus perder-se-á.')">
+        <svg class="w-3.5 h-3.5 inline -mt-0.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Sair
+    </a>
+
+    <div id="duel-area" class="w-screen h-dvh">
+        {{template "duel" .}}
+    </div>
+</body>
+</html>
+{{end}}

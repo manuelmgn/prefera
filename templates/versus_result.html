@@ -1,0 +1,87 @@
+{{define "versus_result"}}
+<div class="max-w-lg mx-auto">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Resultado do Versus</h2>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mb-6">Podes ajustar a orde arrastando os elementos</p>
+
+    <div class="ios-card rounded-2xl overflow-hidden mb-5">
+        <ol class="divide-y divide-gray-50/80 dark:divide-white/5" id="sortable-items">
+            {{range .List.Items}}
+            <li class="sortable-item flex items-center gap-3 px-5 py-3.5 cursor-grab active:cursor-grabbing hover:bg-white/50 dark:hover:bg-white/5 transition-colors
+                {{if eq .Position 1}}bg-amber-50/40 dark:bg-amber-500/5
+                {{else if eq .Position 2}}bg-gray-50/40 dark:bg-white/[0.02]
+                {{else if eq .Position 3}}bg-orange-50/40 dark:bg-orange-500/5{{end}}"
+                data-id="{{.ID}}">
+                <span class="drag-handle text-gray-300 dark:text-gray-600 text-lg select-none">&#10495;</span>
+                <span class="rank-number w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0
+                    {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900 shadow-sm
+                    {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600 shadow-sm
+                    {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm
+                    {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">
+                    {{.Position}}
+                </span>
+                <span class="text-gray-700 dark:text-gray-300 font-medium text-[15px] flex-1">{{.Name}}</span>
+            </li>
+            {{end}}
+        </ol>
+    </div>
+
+    <!-- Toggle público/privado antes de gardar -->
+    <div class="ios-card rounded-2xl p-5 mb-5" x-data="{on: {{if .List.IsPublic}}true{{else}}false{{end}}}">
+        <div class="flex items-center justify-between cursor-pointer" @click="on = !on">
+            <div>
+                <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Lista pública</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Outros utilizadores poderám ver esta lista</span>
+            </div>
+            <div class="relative">
+                <input type="hidden" name="is_public_val" :value="on ? 'on' : ''" id="result-is-public">
+                <div :class="on ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'"
+                     class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
+                    <div :class="on ? 'translate-x-[20px]' : 'translate-x-0'"
+                         class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-3">
+        <button onclick="saveOrderAndPublic({{.List.ID}})"
+                class="btn-save-order flex-1 bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98]">
+            Gardar orde
+        </button>
+        <a href="/lists/{{.List.ID}}/edit"
+           class="flex-1 text-center ios-card text-gray-700 dark:text-gray-300 py-3 rounded-2xl text-[15px] font-semibold hover:bg-white/70 dark:hover:bg-white/10 transition-colors">
+            Continuar a editar
+        </a>
+    </div>
+</div>
+
+<script>
+function saveOrderAndPublic(listID) {
+    var items = document.querySelectorAll('#sortable-items .sortable-item');
+    var ids = [];
+    items.forEach(function(item) { ids.push(parseInt(item.getAttribute('data-id'))); });
+
+    fetch('/lists/' + listID + '/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ids)
+    }).then(function(response) {
+        if (!response.ok) { alert('Erro ao gardar a orde'); return; }
+
+        var isPublic = document.getElementById('result-is-public').value;
+        var form = new FormData();
+        form.append('name', '');
+        form.append('description', '');
+        if (isPublic === 'on') form.append('is_public', 'on');
+
+        return fetch('/lists/' + listID + '/update', { method: 'POST', body: form });
+    }).then(function(response) {
+        if (response && response.ok) {
+            window.location.href = '/lists/' + listID;
+        } else if (response) {
+            alert('Erro ao actualizar');
+        }
+    }).catch(function() { alert('Erro de conexom'); });
+}
+</script>
+{{end}}

@@ -1,0 +1,84 @@
+{{define "login"}}
+<!DOCTYPE html>
+<html lang="pt" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sessom — Listas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <script>
+    (function(){
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+    })();
+    </script>
+    <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'SF Pro Display', 'system-ui', '-apple-system', 'sans-serif'] } } } }
+    </script>
+    <style>
+        .glass-login {
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(60px) saturate(200%);
+            -webkit-backdrop-filter: blur(60px) saturate(200%);
+        }
+        .dark .glass-login {
+            background: rgba(30,30,45,0.55);
+        }
+        @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-20px) scale(1.05); } }
+        @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-20px,30px) scale(1.08); } }
+        @keyframes float3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(15px,15px) scale(0.95); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .orb-1 { animation: float1 8s ease-in-out infinite; }
+        .orb-2 { animation: float2 10s ease-in-out infinite; }
+        .orb-3 { animation: float3 12s ease-in-out infinite; }
+        .login-card { animation: fadeUp 0.6s ease-out; }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex items-center justify-center p-5 antialiased relative overflow-hidden bg-gradient-to-br from-violet-50 via-indigo-50 to-pink-50 dark:from-[#0a0a12] dark:via-[#0e0e1a] dark:to-[#12101f]">
+
+    <!-- Orbes decorativas animadas -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="orb-1 absolute -top-20 -left-20 w-80 h-80 bg-violet-400/20 dark:bg-violet-500/10 rounded-full blur-3xl"></div>
+        <div class="orb-2 absolute -bottom-32 -right-20 w-96 h-96 bg-indigo-400/20 dark:bg-indigo-500/10 rounded-full blur-3xl"></div>
+        <div class="orb-3 absolute top-1/3 right-1/4 w-72 h-72 bg-pink-300/15 dark:bg-pink-500/8 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="login-card glass-login rounded-[28px] shadow-2xl shadow-black/5 dark:shadow-black/30 w-full max-w-[360px] p-8 relative border border-white/60 dark:border-white/8">
+        <div class="text-center mb-8">
+            <h1 class="text-[28px] font-bold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent">
+                Listas
+            </h1>
+            <p class="text-gray-400 dark:text-gray-500 text-[13px] mt-2 font-medium">Inicia sessom para continuar</p>
+        </div>
+
+        {{if .Error}}
+        <div class="bg-red-500/10 border border-red-500/15 text-red-600 dark:text-red-400 px-4 py-2.5 rounded-2xl mb-5 text-sm font-medium">
+            {{.Error}}
+        </div>
+        {{end}}
+
+        <form method="POST" action="/login" class="space-y-4">
+            <div>
+                <label for="username" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Username</label>
+                <input type="text" id="username" name="username" maxlength="50"
+                       class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200"
+                       placeholder="username" required autofocus {{if .Blocked}}disabled{{end}}>
+            </div>
+
+            <div>
+                <label for="password" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Palavra-chave</label>
+                <input type="password" id="password" name="password" maxlength="128"
+                       class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200"
+                       placeholder="Palavra-chave" required {{if .Blocked}}disabled{{end}}>
+            </div>
+
+            <button type="submit"
+                    {{if .Blocked}}disabled{{end}}
+                    class="w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3.5 rounded-2xl font-semibold text-[15px] hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98] mt-2 {{if .Blocked}}opacity-40 cursor-not-allowed{{end}}">
+                {{if .Blocked}}Acesso bloqueado{{else}}Entrar{{end}}
+            </button>
+        </form>
+    </div>
+</body>
+</html>
+{{end}}

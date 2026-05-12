@@ -1,0 +1,164 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="pt" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .Title}}{{.Title}} — {{end}}Listas</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <script src="/static/vendor/htmx.min.js" defer></script>
+    <script src="/static/vendor/alpine.min.js" defer></script>
+    <script src="/static/vendor/sortable.min.js" defer></script>
+    <!-- Aplicar tema ANTES de renderizar (evita flash) -->
+    <script>
+    (function(){
+        var pref = '{{if .User}}{{.User.ThemePreference}}{{else}}auto{{end}}';
+        var dark = false;
+        if (pref === 'dark') dark = true;
+        else if (pref === 'light') dark = false;
+        else dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) document.documentElement.classList.add('dark');
+    })();
+    </script>
+    <script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                fontFamily: { sans: ['Inter', 'SF Pro Display', 'SF Pro Text', 'system-ui', '-apple-system', 'sans-serif'] },
+                colors: {
+                    gold: '#FFD700',
+                    silver: '#C0C0C0',
+                    bronze: '#CD7F32',
+                }
+            }
+        }
+    }
+    </script>
+    <style>
+        /* iOS-inspired glassmorphism — light */
+        .glass {
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+        }
+        .glass-nav {
+            background: rgba(255,255,255,0.72);
+            backdrop-filter: blur(40px) saturate(200%);
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+        }
+        .ios-card {
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        /* Dark variants */
+        .dark .glass {
+            background: rgba(30,30,40,0.6);
+        }
+        .dark .glass-nav {
+            background: rgba(20,20,30,0.78);
+        }
+        .dark .ios-card {
+            background: rgba(40,40,55,0.6);
+            border-color: rgba(255,255,255,0.08);
+        }
+
+        .sortable-ghost { opacity: 0.25; }
+        .sortable-chosen { box-shadow: 0 12px 40px rgba(0,0,0,0.08); transform: scale(1.02); border-radius: 16px; }
+        .dark .sortable-chosen { box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+
+        /* Mesh gradient background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(139,92,246,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 10%, rgba(99,102,241,0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 90%, rgba(236,72,153,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 10% 80%, rgba(59,130,246,0.06) 0%, transparent 50%);
+        }
+        .dark body::before,
+        html.dark body::before {
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(139,92,246,0.10) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 10%, rgba(99,102,241,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 90%, rgba(236,72,153,0.05) 0%, transparent 50%);
+        }
+
+        /* Smooth page transitions */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        main > * { animation: fadeIn 0.4s ease-out; }
+    </style>
+</head>
+<body class="font-sans bg-gray-50/80 dark:bg-[#0e0e14] min-h-screen text-gray-800 dark:text-gray-200 antialiased">
+    {{if .User}}
+    <nav class="glass-nav sticky top-0 z-40 border-b border-white/40 dark:border-white/5">
+        <div class="max-w-2xl mx-auto px-5 py-3 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 text-[17px] font-bold tracking-tight bg-gradient-to-r from-violet-600 to-indigo-500 bg-clip-text text-transparent transition-[filter,opacity] duration-300 ease-out hover:drop-shadow-[0_0_16px_rgba(139,92,246,0.28)] hover:opacity-75">
+                <img src="/static/favicon.svg" alt="" class="hidden sm:block w-5 h-5 shrink-0">
+                Listas
+            </a>
+            <div class="flex items-center gap-2">
+                <a href="/lists/new"
+                   class="bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-4 py-[7px] rounded-full text-[13px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.97]">
+                    + Individual
+                </a>
+                <a href="/collective/new"
+                   class="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-[7px] rounded-full text-[13px] font-semibold hover:shadow-lg hover:shadow-teal-500/20 transition-all duration-300 active:scale-[0.97]"
+                   title="Criar lista coletiva">
+                    + Coletiva
+                </a>
+                <a href="/my-lists"
+                   class="w-8 h-8 rounded-full bg-gray-100/80 dark:bg-white/10 hover:bg-gray-200/80 dark:hover:bg-white/15 flex items-center justify-center transition-colors"
+                   title="As minhas listas">
+                    <svg class="w-[16px] h-[16px] text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h10"/>
+                    </svg>
+                </a>
+                
+
+                <a href="/settings"
+                   class="w-8 h-8 rounded-full bg-gray-100/80 dark:bg-white/10 hover:bg-gray-200/80 dark:hover:bg-white/15 flex items-center justify-center transition-colors"
+                   title="{{.User.Username}}">
+                    <svg class="w-[16px] h-[16px] text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </a>
+
+                {{if .User.IsAdmin}}
+                <a href="/admin"
+                   class="w-8 h-8 rounded-full bg-amber-100/80 dark:bg-amber-900/30 hover:bg-amber-200/80 dark:hover:bg-amber-800/40 flex items-center justify-center transition-colors"
+                   title="Admin">
+                    <svg class="w-[16px] h-[16px] text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </a>
+                {{end}}
+
+                <form method="POST" action="/logout" class="m-0 hidden sm:block">
+                    <button type="submit" class="text-[13px] text-gray-400 hover:text-red-500 transition-colors px-1">Sair</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+    {{end}}
+
+    <main class="max-w-2xl mx-auto px-5 py-8">
+        {{.Content}}
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
+{{end}}

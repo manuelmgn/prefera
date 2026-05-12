@@ -1,0 +1,219 @@
+{{define "collective_create"}}
+<div x-data="collectiveCreator()" class="max-w-lg mx-auto">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Criar lista coletiva</h2>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-7">Cria uma lista que várias pessoas podem ranquear</p>
+
+    <!-- Nome -->
+    <div class="mb-5">
+        <label for="list-name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nome da lista</label>
+        <input type="text" id="list-name" x-model="listName" maxlength="150"
+               class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200"
+               placeholder="Ex: Melhores filmes de terror">
+    </div>
+
+    <!-- Descriçom -->
+    <div class="mb-5">
+        <label for="description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descriçom (opcional)</label>
+        <textarea id="description" x-model="description" rows="2" maxlength="500"
+                  class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200 resize-none"
+                  placeholder="Breve descriçom da lista"></textarea>
+    </div>
+
+    <!-- Engadir elementos -->
+    <div class="flex gap-2 mb-2">
+        <input type="text" x-model="newItem" maxlength="200"
+               @keydown.enter.prevent="addItem()"
+               x-ref="itemInput"
+               class="flex-1 px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200"
+               placeholder="Escreve um elemento e preme Enter">
+        <button @click="addItem()" type="button"
+                class="bg-gray-900 dark:bg-white/10 text-white px-5 py-3.5 rounded-2xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors whitespace-nowrap active:scale-[0.97]">
+            Engadir
+        </button>
+    </div>
+
+    <!-- Lista de elementos -->
+    <div class="mb-7" x-show="items.length > 0" x-transition.opacity.duration.300ms>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-2 font-medium" x-text="items.length + ' elementos'"></p>
+        <div class="ios-card rounded-2xl divide-y divide-gray-100/60 dark:divide-white/5 overflow-hidden">
+            <template x-for="(item, index) in items" :key="index">
+                <div>
+                    <div class="flex items-center gap-3 px-5 py-3.5 group">
+                        <span class="text-xs text-gray-300 dark:text-gray-600 font-mono w-5 text-right tabular-nums" x-text="(index + 1)"></span>
+                        <span class="flex-1 text-[15px] text-gray-700 dark:text-gray-300 font-medium" x-text="item.name"></span>
+                        <!-- Indicador de detalhes -->
+                        <span x-show="item.description || item.link || item.image" class="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0"></span>
+                        <!-- Botom expandir detalhes -->
+                        <button @click="item.expanded = !item.expanded" type="button"
+                                class="w-6 h-6 rounded-full bg-gray-100/80 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-all text-xs shrink-0"
+                                :class="item.expanded ? 'bg-violet-100 dark:bg-violet-500/20 text-violet-500' : ''">
+                            <svg class="w-3 h-3 transition-transform duration-200" :class="item.expanded ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <button @click="removeItem(index)" type="button"
+                                class="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 flex items-center justify-center text-red-400 hover:text-red-500 transition-all text-sm leading-none shrink-0">&times;</button>
+                    </div>
+                    <!-- Detalhes expandidos -->
+                    <div x-show="item.expanded" x-transition.opacity.duration.200ms class="px-5 pb-4 pt-0 ml-8 space-y-2.5">
+                        <div>
+                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Descriçom</label>
+                            <textarea x-model="item.description" maxlength="600" rows="2"
+                                      class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 resize-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
+                                      placeholder="Descriçom breve (opcional, máx. 100 palavras)"></textarea>
+                        </div>
+                        <div x-data="{get linkOk(){ return !item.link || allowedPatterns.some(p => item.link.toLowerCase().includes(p.toLowerCase())) }}">
+                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Ligaçom</label>
+                            <input type="url" x-model="item.link" maxlength="500"
+                                   class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
+                                   :class="!linkOk ? 'border-red-400 dark:border-red-500' : ''"
+                                   placeholder="Só se permitem ligaçons de determinadas webs">
+                            <p x-show="!linkOk" class="text-[10px] text-red-500 mt-1">Ligaçom nom válida</p>
+                            <p x-show="linkOk" class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Wikipedia, YouTube, Spotify, redes sociais…</p>
+                        </div>
+                        <div x-data="{uploading: false, uploadError: '', async doUpload(e){ const f=e.target.files[0]; if(!f) return; uploading=true; uploadError=''; const fd=new FormData(); fd.append('image',f); try{ const r=await fetch('/api/upload-image',{method:'POST',body:fd}); const d=await r.json(); if(d.url) item.image=d.url; else uploadError=d.error||'Erro'; } catch(ex){ uploadError='Erro de rede'; } finally{ uploading=false; e.target.value=''; } }}">
+                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Imagem</label>
+                            <div class="flex gap-2 mt-1">
+                                <input type="url" x-model="item.image" maxlength="500"
+                                       class="flex-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
+                                       placeholder="URL da imagem">
+                                <label class="relative cursor-pointer shrink-0" :class="uploading ? 'opacity-60 pointer-events-none' : ''">
+                                    <input type="file" accept="image/*" class="sr-only" @change="doUpload($event)">
+                                    <span class="flex items-center gap-1.5 px-3 py-2 bg-gray-100/80 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 rounded-xl text-[12px] font-medium text-gray-600 dark:text-gray-300 transition-colors whitespace-nowrap">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        <span x-text="uploading ? '…' : 'Subir'"></span>
+                                    </span>
+                                </label>
+                            </div>
+                            <p class="text-[10px] text-gray-400/70 dark:text-gray-600 mt-1">As imagens ficam alojadas num servidor externo público.</p>
+                            <p x-show="uploadError" class="text-[10px] text-red-500 mt-1" x-text="uploadError"></p>
+                            <div x-show="item.image" class="mt-2 relative inline-block">
+                                <img :src="item.image" alt="" class="h-14 w-auto rounded-lg object-cover border border-gray-200/60 dark:border-white/10" @error="item.image=''">
+                                <button type="button" @click="item.image=''" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Visibilidade e permissom de voto -->
+    <div class="ios-card rounded-2xl overflow-hidden mb-7" x-show="items.length >= 2 && listName.trim()" x-transition.opacity.duration.300ms>
+        <div class="px-5 py-3 border-b border-white/10 dark:border-white/5">
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Configuraçom</span>
+        </div>
+
+        <!-- Visibilidade -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100/60 dark:border-white/5 cursor-pointer" @click="isPublic = !isPublic; if(!isPublic) votePerm = 'link'">
+            <div>
+                <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Lista pública</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 block mt.5">Se pública, todes es utilizadores poderám ver a lista e os votos</span>
+            </div>
+            <div class="relative shrink-0 ml-3">
+                <div :class="isPublic ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'"
+                     class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
+                    <div :class="isPublic ? 'translate-x-[20px]' : 'translate-x-0'"
+                         class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permissom de voto -->
+        <div class="px-5 py-4">
+            <div class="mb-3">
+                <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Permissom de voto</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5" x-show="isPublic">Quem pode votar nesta lista</span>
+                <span class="text-xs text-amber-500 dark:text-amber-400 block mt-0.5" x-show="!isPublic">Listas privadas só permitem voto por link</span>
+            </div>
+            <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-xl p-1 gap-1" :class="!isPublic ? 'opacity-50 pointer-events-none' : ''">
+                <button type="button" @click="if(isPublic) votePerm = 'all'"
+                        :class="votePerm === 'all' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
+                        class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center">
+                    Todos
+                </button>
+                <button type="button" @click="votePerm = 'link'"
+                        :class="votePerm === 'link' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
+                        class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center">
+                    Só com link
+                </button>
+                <button type="button" @click="votePerm = 'closed'"
+                        :class="votePerm === 'closed' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
+                        class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center">
+                    Fechada
+                </button>
+            </div>
+            <div class="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                <span x-show="votePerm === 'all'">Qualquer utilizadore registade poderá votar</span>
+                <span x-show="votePerm === 'link'">Só quem aceder ao link de partilha poderá votar</span>
+                <span x-show="votePerm === 'closed'" class="text-red-400 dark:text-red-400">Ninguém pode votar — a lista está fechada</span>
+            </div>
+        </div>
+
+        <!-- Ocultar elementos -->
+        <div class="flex items-center justify-between px-5 py-4 border-t border-gray-100/60 dark:border-white/5 cursor-pointer" @click="hideItems = !hideItems">
+            <div>
+                <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Elementos surpresa</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Es participantes só vem os elementos ao votar no modo versus</span>
+            </div>
+            <div class="relative shrink-0 ml-3">
+                <div :class="hideItems ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'"
+                     class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
+                    <div :class="hideItems ? 'translate-x-[20px]' : 'translate-x-0'"
+                         class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botom criar -->
+    <button @click="saveList()"
+            :disabled="items.length < 2 || !listName.trim()"
+            :class="items.length < 2 || !listName.trim() ? 'opacity-40 cursor-not-allowed' : 'hover:shadow-xl hover:shadow-teal-500/20 hover:-translate-y-0.5 active:scale-[0.98]'"
+            class="w-full px-6 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-2xl font-semibold transition-all duration-300 text-[15px]">
+        Criar lista coletiva
+    </button>
+    <p x-show="items.length < 2" class="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">Engade ao menos 2 elementos</p>
+
+    <!-- Formulário oculto -->
+    <form x-ref="form" method="POST" action="/collective" style="display:none">
+        <input type="hidden" name="name" :value="listName">
+        <input type="hidden" name="description" :value="description">
+        <input type="hidden" name="items" :value="JSON.stringify(items)">
+        <input type="hidden" name="is_public" :value="isPublic ? 'on' : ''">
+        <input type="hidden" name="vote_permission" :value="votePerm">
+        <input type="hidden" name="hide_items" :value="hideItems ? 'on' : ''">
+    </form>
+
+    <a href="/" class="inline-flex items-center gap-1.5 mt-8 text-sm text-gray-400 hover:text-violet-500 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Voltar
+    </a>
+</div>
+
+<script>
+function collectiveCreator() {
+    return {
+        listName: '',
+        description: '',
+        newItem: '',
+        items: [],
+        isPublic: {{if .DefaultPublic}}true{{else}}false{{end}},
+        votePerm: {{if .DefaultPublic}}'all'{{else}}'link'{{end}},
+        hideItems: false,
+        allowedPatterns: {{allowedPatterns}},
+        addItem() {
+            const name = this.newItem.trim();
+            if (name && !this.items.some(i => i.name === name)) {
+                this.items.push({ name: name, description: '', link: '', image: '', expanded: false });
+                this.newItem = '';
+            }
+            this.$refs.itemInput.focus();
+        },
+        removeItem(index) { this.items.splice(index, 1); },
+        saveList() {
+            if (!this.listName.trim() || this.items.length < 2) return;
+            this.$refs.form.submit();
+        }
+    };
+}
+</script>
+{{end}}

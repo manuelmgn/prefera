@@ -1,0 +1,273 @@
+{{define "list_edit"}}
+<div class="max-w-lg mx-auto">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Editar lista</h2>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-7">Modifica os metadatos e reordena os elementos</p>
+
+    <!-- Metadados -->
+    <form method="POST" action="/lists/{{.List.ID}}/update" class="ios-card rounded-2xl overflow-hidden mb-5">
+        <div class="p-5 space-y-4">
+            <div>
+                <label for="name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nome</label>
+                <input type="text" id="name" name="name" value="{{.List.Name}}" required maxlength="150"
+                       class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200">
+            </div>
+            <div>
+                <label for="description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descriçom (opcional)</label>
+                <textarea id="description" name="description" rows="2" maxlength="500"
+                          class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200 resize-none">{{.List.Description}}</textarea>
+            </div>
+
+            <!-- Toggle público/privado estilo iOS -->
+            <div class="flex items-center justify-between cursor-pointer" x-data="{on: {{if .List.IsPublic}}true{{else}}false{{end}}}" @click="on = !on">
+                <span class="text-[15px] text-gray-700 dark:text-gray-300 font-medium">Lista pública</span>
+                <div class="relative">
+                    <input type="hidden" name="is_public" :value="on ? 'on' : ''">
+                    <div :class="on ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'"
+                         class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
+                        <div :class="on ? 'translate-x-[20px]' : 'translate-x-0'"
+                             class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="px-5 pb-5">
+            <button type="submit"
+                    class="w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98]">
+                Guardar metadados
+            </button>
+        </div>
+    </form>
+
+    <!-- Detalhes dos elementos (só se ninguém votou ainda) -->
+    {{if .CanEditItems}}
+    <details class="ios-card rounded-2xl overflow-hidden mb-5 group">
+        <summary class="cursor-pointer font-semibold text-gray-700 dark:text-gray-300 text-[15px] hover:text-violet-600 dark:hover:text-violet-400 transition-colors list-none flex items-center justify-between p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-indigo-100/80 dark:bg-indigo-500/15 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <span>Detalhes dos elementos</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 block font-normal">Descriçons, imagens e ligaçons</span>
+                </div>
+            </div>
+            <svg class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </summary>
+        <div class="divide-y divide-gray-100/60 dark:divide-white/5">
+            {{range .List.Items}}
+            <form method="POST" action="/lists/{{$.List.ID}}/items/{{.ID}}/details"
+                  x-data="itemDetailsForm('{{.Link}}', '{{.Image}}')"
+                  class="px-5 py-4">
+                <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{.Name}}</p>
+                <div class="space-y-2.5">
+                    <!-- Descriçom -->
+                    <div>
+                        <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Descriçom</label>
+                        <textarea name="description" rows="2" maxlength="600"
+                                  class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 resize-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
+                                  placeholder="Descriçom breve (máx. 100 palavras)">{{.Description}}</textarea>
+                    </div>
+
+                    <!-- Ligaçom -->
+                    <div>
+                        <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Ligaçom</label>
+                        <input type="url" name="link" x-model="linkVal" maxlength="500" @input="validateLink()"
+                               class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
+                               :class="linkVal && !linkValid ? 'border-red-400 dark:border-red-500' : ''"
+                               placeholder="Só se permitem ligaçons de determinadas webs">
+                        <p x-show="linkVal && !linkValid" class="text-[10px] text-red-500 mt-1">Ligaçom nom válida</p>
+                        <p x-show="!linkVal || linkValid" class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Wikipedia, YouTube, Spotify, redes sociais…</p>
+                    </div>
+
+                    <!-- Imagem -->
+                    <div>
+                        <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Imagem</label>
+                        <div class="flex gap-2 mt-1">
+                            <input type="url" name="image" x-model="imageVal" maxlength="500"
+                                   class="flex-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
+                                   placeholder="URL da imagem">
+                            <!-- Botom upload compacto -->
+                            <label class="relative cursor-pointer shrink-0">
+                                <input type="file" accept="image/*" class="sr-only" @change="uploadImage($event)">
+                                <span class="flex items-center gap-1.5 px-3 py-2 bg-gray-100/80 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 rounded-xl text-[12px] font-medium text-gray-600 dark:text-gray-300 transition-colors whitespace-nowrap"
+                                      :class="uploading ? 'opacity-60 pointer-events-none' : ''">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                    <span x-text="uploading ? '…' : 'Subir'"></span>
+                                </span>
+                            </label>
+                        </div>
+                        <p class="text-[10px] text-gray-400/70 dark:text-gray-600 mt-1">As imagens ficam alojadas num servidor externo público.</p>
+                        <p x-show="uploadError" class="text-[10px] text-red-500 mt-1" x-text="uploadError"></p>
+                        <!-- Pré-visualizaçom -->
+                        <div x-show="imageVal" class="mt-2 relative inline-block">
+                            <img :src="imageVal" alt="" class="h-16 w-auto rounded-lg object-cover border border-gray-200/60 dark:border-white/10" @error="imageVal=''">
+                            <button type="button" @click="imageVal=''" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">&times;</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" :disabled="linkVal && !linkValid"
+                            :class="linkVal && !linkValid ? 'opacity-40 cursor-not-allowed' : ''"
+                            class="px-4 py-2 bg-gray-900 dark:bg-white/10 text-white rounded-xl text-xs font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors">
+                        Guardar
+                    </button>
+                </div>
+            </form>
+            {{end}}
+        </div>
+    </details>
+    {{end}}
+
+    <!-- Reordenar -->
+    {{template "reorder_section" .}}
+
+    <!-- Converter em coletiva -->
+    <details class="ios-card rounded-2xl overflow-hidden mb-5 group">
+        <summary class="cursor-pointer font-semibold text-gray-700 dark:text-gray-300 text-[15px] hover:text-teal-600 dark:hover:text-teal-400 transition-colors list-none flex items-center justify-between p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-teal-100/80 dark:bg-teal-500/15 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-teal-600 dark:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </div>
+                <span>Converter em lista coletiva</span>
+            </div>
+            <svg class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </summary>
+        <div class="px-5 pb-5" x-data="{isPublic: {{if .List.IsPublic}}true{{else}}false{{end}}, votePerm: {{if .List.IsPublic}}'all'{{else}}'link'{{end}}, hideItems: false}">
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-2 leading-relaxed">
+                Converte esta lista numa <strong class="text-gray-600 dark:text-gray-300">lista coletiva</strong> que outras pessoas podem ranquear.
+                Receberás um link de partilha para convidar participantes.
+            </p>
+            <p class="text-xs text-amber-600 dark:text-amber-400 mb-4">
+                A tua orde atual será preservada como a tua votaçom. A lista individual será substituída pela coletiva.
+            </p>
+
+            <!-- Visibilidade -->
+            <div class="flex items-center justify-between py-3 mb-3 cursor-pointer" @click="isPublic = !isPublic; if(!isPublic) votePerm = 'link'">
+                <div>
+                    <span class="text-[14px] font-medium text-gray-800 dark:text-gray-200">Lista pública</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Visível para todes es utilizadores</span>
+                </div>
+                <div class="relative shrink-0 ml-3">
+                    <div :class="isPublic ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'"
+                         class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
+                        <div :class="isPublic ? 'translate-x-[20px]' : 'translate-x-0'"
+                             class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permissom de voto -->
+            <div class="mb-4">
+                <div class="mb-2">
+                    <span class="text-[14px] font-medium text-gray-800 dark:text-gray-200">Permissom de voto</span>
+                    <span class="text-xs text-amber-500 dark:text-amber-400 block mt-0.5" x-show="!isPublic">Listas privadas só permitem voto por link</span>
+                </div>
+                <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-xl p-1 gap-1" :class="!isPublic ? 'opacity-50 pointer-events-none' : ''">
+                    <button type="button" @click="if(isPublic) votePerm = 'all'"
+                            :class="votePerm === 'all' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
+                            class="flex-1 py-2 rounded-[10px] text-sm transition-all duration-200 text-center">
+                        Todos
+                    </button>
+                    <button type="button" @click="votePerm = 'link'"
+                            :class="votePerm === 'link' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
+                            class="flex-1 py-2 rounded-[10px] text-sm transition-all duration-200 text-center">
+                        Só com link
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ocultar elementos -->
+            <div class="flex items-center justify-between py-3 mb-4 cursor-pointer" @click="hideItems = !hideItems">
+                <div>
+                    <span class="text-[14px] font-medium text-gray-800 dark:text-gray-200">Elementos surpresa</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Participantes só vem os elementos ao votar</span>
+                </div>
+                <div class="relative shrink-0 ml-3">
+                    <div :class="hideItems ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'"
+                         class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
+                        <div :class="hideItems ? 'translate-x-[20px]' : 'translate-x-0'"
+                             class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="/lists/{{.List.ID}}/convert-to-collective"
+                  onsubmit="return confirm('Converter esta lista em coletiva? A lista individual será substituída.')">
+                <input type="hidden" name="is_public" :value="isPublic ? 'on' : ''">
+                <input type="hidden" name="vote_permission" :value="votePerm">
+                <input type="hidden" name="hide_items" :value="hideItems ? 'on' : ''">
+                <button type="submit"
+                        class="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-teal-500/20 transition-all duration-300 active:scale-[0.98]">
+                    Converter em coletiva
+                </button>
+            </form>
+        </div>
+    </details>
+
+    <!-- Apagar lista -->
+    <div class="mb-5">
+        <form method="POST" action="/lists/{{.List.ID}}/delete"
+              onsubmit="return confirm('Tens certeza de que queres apagar esta lista? Esta acçom nom se pode desfazer.')">
+            <button type="submit"
+                    class="w-full text-center text-red-500 hover:text-red-600 text-sm font-medium py-2 rounded-xl hover:bg-red-50/50 dark:hover:bg-red-500/5 transition-colors">
+                Apagar lista
+            </button>
+        </form>
+    </div>
+
+    <a href="/lists/{{.List.ID}}" class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Voltar à lista
+    </a>
+</div>
+
+<script>
+const _allowedPatterns = {{.AllowedPatterns}};
+function itemDetailsForm(initialLink, initialImage) {
+    return {
+        linkVal: initialLink,
+        imageVal: initialImage,
+        linkValid: true,
+        uploading: false,
+        uploadError: '',
+        init() {
+            this.validateLink();
+        },
+        validateLink() {
+            if (!this.linkVal) { this.linkValid = true; return; }
+            const lower = this.linkVal.toLowerCase();
+            this.linkValid = _allowedPatterns.some(p => lower.includes(p.toLowerCase()));
+        },
+        async uploadImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            this.uploading = true;
+            this.uploadError = '';
+            const formData = new FormData();
+            formData.append('image', file);
+            try {
+                const resp = await fetch('/api/upload-image', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.url) {
+                    this.imageVal = data.url;
+                } else {
+                    this.uploadError = data.error || 'Erro ao subir imagem';
+                }
+            } catch (e) {
+                this.uploadError = 'Erro de rede';
+            } finally {
+                this.uploading = false;
+                event.target.value = '';
+            }
+        }
+    };
+}
+</script>
+{{end}}

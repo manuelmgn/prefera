@@ -1,0 +1,222 @@
+{{define "collective_view"}}
+<div class="max-w-2xl mx-auto">
+    <!-- Cabeçalho -->
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">{{.Collective.Name}}</h2>
+
+    {{if .Collective.Description}}
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{.Collective.Description}}</p>
+    {{end}}
+
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-2">
+        por <span class="text-gray-600 dark:text-gray-300 font-medium">{{.Collective.CreatorName}}</span>
+        &middot; {{.CreatedAtDate}}
+        &middot; {{.Collective.Ranked}} votaram
+    </p>
+    <div class="flex flex-wrap gap-1.5 mb-6">
+        {{if .Collective.IsPublic}}
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-100/50 dark:border-emerald-500/20">Pública</span>
+        {{else}}
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-100/80 dark:bg-white/5 px-2.5 py-1 rounded-full border border-gray-100/50 dark:border-white/10">Privada</span>
+        {{end}}
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400 bg-teal-50/80 dark:bg-teal-500/10 px-2.5 py-1 rounded-full border border-teal-100/50 dark:border-teal-500/20">Coletiva</span>
+        {{if .Collective.HideItems}}
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-100/50 dark:border-amber-500/20">Surpresa</span>
+        {{end}}
+    </div>
+
+    <!-- Aviso de elementos ocultos -->
+    {{if .HideItems}}
+    <div class="ios-card rounded-2xl p-5 mb-6 border border-amber-200/60 dark:border-amber-500/20">
+        <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-amber-100/80 dark:bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-amber-700 dark:text-amber-300">Elementos surpresa</p>
+                <p class="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">Os elementos e resultados desta lista estám ocultos até votares. Usa o modo Versus para votar.</p>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- 1. Resultado colectivo -->
+    {{if .Result}}
+    <div class="ios-card rounded-2xl overflow-hidden mb-6">
+        <div class="px-5 py-3 border-b border-white/10 dark:border-white/5">
+            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Resultado coletivo</span>
+            {{if ge .Collective.Ranked 2}}
+            <span class="text-xs text-gray-400 dark:text-gray-500 ml-2">(média de {{.Collective.Ranked}} votaçons)</span>
+            {{end}}
+        </div>
+        <ol class="divide-y divide-gray-50/80 dark:divide-white/5">
+            {{range .Result}}
+            <li class="flex items-center gap-3 px-5 py-3.5
+                {{if eq .Position 1}}bg-amber-50/40 dark:bg-amber-500/5
+                {{else if eq .Position 2}}bg-gray-50/40 dark:bg-white/[0.02]
+                {{else if eq .Position 3}}bg-orange-50/40 dark:bg-orange-500/5{{end}}">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0
+                    {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900 shadow-sm
+                    {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600 shadow-sm
+                    {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm
+                    {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">
+                    {{if .IsTied}}={{else}}{{.Position}}{{end}}
+                </span>
+                {{if .Image}}
+                <img src="{{.Image}}" alt="" class="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-200/60 dark:border-white/10">
+                {{end}}
+                <div class="flex-1 min-w-0">
+                    <span class="text-[15px] text-gray-700 dark:text-gray-300 font-medium">{{.Name}}</span>
+                    {{if .Description}}
+                    <p class="text-[12px] text-gray-400 dark:text-gray-500 leading-snug mt-0.5 line-clamp-2">{{.Description}}</p>
+                    {{end}}
+                </div>
+                {{if .Link}}
+                <a href="{{.Link}}" target="_blank" rel="noopener noreferrer"
+                   class="w-8 h-8 rounded-full bg-gray-100/80 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 flex items-center justify-center shrink-0 transition-colors">
+                    {{if eq (linkType .Link) "wiki"}}
+                    <span class="text-gray-400 font-bold text-xs" style="font-family:serif;">W</span>
+                    {{else if eq (linkType .Link) "videos"}}
+                    <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    {{else if eq (linkType .Link) "musica"}}
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+                    {{else if eq (linkType .Link) "noticias"}}
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+                    {{else if eq (linkType .Link) "social"}}
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    {{else}}
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+                    {{end}}
+                </a>
+                {{end}}
+                {{if ge $.Collective.Ranked 2}}
+                <span class="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums" title="Posiçom média">
+                    {{printf "%.1f" .AvgPosition}}
+                </span>
+                {{end}}
+            </li>
+            {{end}}
+        </ol>
+    </div>
+    {{end}}
+
+    <!-- 2. Reordenar (reusa o partial partilhado) -->
+    {{if .CanVote}}
+    {{template "reorder_section" .}}
+    {{end}}
+
+    <!-- 3. Rankings individuais -->
+    {{if .UserRankings}}
+    <div class="mb-6">
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Rankings individuais</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {{range .UserRankings}}
+            <div class="ios-card rounded-2xl overflow-hidden">
+                <div class="px-4 py-2.5 border-b border-white/10 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
+                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{.DisplayName}}</span>
+                </div>
+                <ol class="divide-y divide-gray-50/80 dark:divide-white/5">
+                    {{range .Items}}
+                    <li class="flex items-center gap-2 px-4 py-2">
+                        <span class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
+                            {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900
+                            {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600
+                            {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white
+                            {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">
+                            {{.Position}}
+                        </span>
+                        <span class="text-[13px] text-gray-600 dark:text-gray-400">{{.Name}}</span>
+                    </li>
+                    {{end}}
+                </ol>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    <!-- 5a. Link de partilha (criador, antes de qualquer voto) -->
+    {{if .IsCreator}}
+    {{if eq .Collective.Ranked 0}}
+    <div class="ios-card rounded-2xl p-5 mb-6" x-data="{ copied: false }">
+        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Link de partilha</span>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 mb-3">Partilha este link para convidar es participantes</p>
+        <div class="flex items-center gap-2">
+            <div class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100/60 dark:bg-white/5 text-gray-600 dark:text-gray-400 text-sm font-mono truncate">
+                <span x-text="window.location.origin + '/collective/join/{{.Collective.ShareCode}}'"></span>
+            </div>
+            <button @click="navigator.clipboard.writeText(window.location.origin + '/collective/join/{{.Collective.ShareCode}}'); copied = true; setTimeout(() => copied = false, 2000)"
+                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 shrink-0"
+                    :class="copied ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-teal-500 hover:bg-teal-600 text-white'">
+                <span x-show="!copied">Copiar</span>
+                <span x-show="copied">Copiado!</span>
+            </button>
+        </div>
+    </div>
+    {{end}}
+    {{end}}
+
+    <!-- 5b. Botom de editar (só criador) -->
+    {{if .IsCreator}}
+    <a href="/collective/{{.Collective.ID}}/edit"
+       class="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98] mb-6">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        Editar lista coletiva
+    </a>
+    {{end}}
+
+    <a href="/" class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Voltar ao início
+    </a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('collective-sortable');
+    if (el && typeof Sortable !== 'undefined') {
+        new Sortable(el, {
+            animation: 200,
+            ghostClass: 'opacity-40',
+            handle: '.drag-handle',
+            onEnd: function() { updateCollectiveRankNumbers(); }
+        });
+    }
+});
+
+function updateCollectiveRankNumbers() {
+    var items = document.querySelectorAll('#collective-sortable .sortable-item');
+    items.forEach(function(item, index) {
+        var rankNum = item.querySelector('.rank-number');
+        if (rankNum) {
+            var pos = index + 1;
+            rankNum.textContent = pos;
+            if (typeof rankBadgeClass === 'function') {
+                rankNum.className = rankBadgeClass(pos, 'sm');
+            }
+        }
+    });
+}
+
+function saveCollectiveOrder(collectiveID) {
+    var items = document.querySelectorAll('#collective-sortable .sortable-item');
+    var ids = [];
+    items.forEach(function(item) { ids.push(parseInt(item.getAttribute('data-id'))); });
+
+    fetch('/collective/' + collectiveID + '/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ids)
+    }).then(function(response) {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Erro ao gardar a orde');
+        }
+    }).catch(function() { alert('Erro de conexom'); });
+}
+</script>
+{{end}}

@@ -1,0 +1,23 @@
+{{define "my_lists_all"}}
+<div class="max-w-2xl mx-auto">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Todas as minhas listas</h2>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-8">{{len .Lists}} lista{{if ne (len .Lists) 1}}s{{end}} individual{{if ne (len .Lists) 1}}s{{end}}</p>
+
+    {{if .Lists}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-8">
+        {{range .Lists}}
+        {{template "list_card" .}}
+        {{end}}
+    </div>
+    {{else}}
+    <div class="ios-card rounded-2xl border-2 border-dashed border-gray-200/60 dark:border-white/10 p-10 text-center mb-8">
+        <p class="text-gray-400 dark:text-gray-500 text-[15px]">Ainda nom tens listas individuais</p>
+    </div>
+    {{end}}
+
+    <a href="/my-lists" class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Voltar
+    </a>
+</div>
+{{end}}

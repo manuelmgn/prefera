@@ -1,0 +1,115 @@
+{{define "dashboard"}}
+
+<!-- As minhas listas recentes -->
+{{if gt .TotalLists 0}}
+<section class="mb-10">
+    <div class="flex items-baseline justify-between mb-1">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">As minhas listas recentes</h2>
+        <a href="/my-lists" class="text-sm text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 font-medium transition-colors shrink-0 ml-3">Ver todas</a>
+    </div>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-6">As tuas listas individuais dos últimos 3 meses</p>
+
+    {{if .HasNoRecent}}
+    <div class="ios-card rounded-2xl p-6 text-center">
+        <p class="text-sm text-gray-400 dark:text-gray-500">Nom criaste listas individuais nos últimos 3 meses.</p>
+        <a href="/my-lists" class="inline-block mt-3 text-sm font-medium text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">
+            Ver as minhas listas →
+        </a>
+    </div>
+    {{else}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        {{range .RecentLists}}
+        {{template "list_card" .}}
+        {{end}}
+    </div>
+    {{end}}
+</section>
+{{end}}
+
+<!-- Últimas listas colectivas -->
+{{if .CollectiveLists}}
+<section class="mb-10">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Últimas listas coletivas</h2>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-5">Listas coletivas públicas publicadas recentemente</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        {{range .CollectiveLists}}
+        {{template "collective_card" .}}
+        {{end}}
+    </div>
+</section>
+{{end}}
+
+<!-- Listas individuais doutras persoas -->
+{{if .PublicLists}}
+<section class="mb-10">
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Listas individuais doutras persoas</h2>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-5">As últimas listas públicas de outres utilizadores</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        {{range .PublicLists}}
+        {{template "list_card" .}}
+        {{end}}
+    </div>
+</section>
+{{end}}
+
+{{end}}
+
+<!-- Partial: cartão de lista individual -->
+{{define "list_card"}}
+<a href="/lists/{{.ID}}"
+   class="group ios-card rounded-2xl p-5 hover:shadow-xl hover:shadow-violet-100/40 dark:hover:shadow-violet-900/20 hover:-translate-y-0.5 transition-all duration-300">
+    <div class="flex items-start justify-between mb-3">
+        <h3 class="font-semibold text-[15px] text-gray-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors leading-snug pr-2">{{.Name}}</h3>
+        {{if .IsPublic}}
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-100/50 dark:border-emerald-500/20 shrink-0">Pública</span>
+        {{else}}
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-100/80 dark:bg-white/5 px-2.5 py-0.5 rounded-full border border-gray-100/50 dark:border-white/10 shrink-0">Privada</span>
+        {{end}}
+    </div>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">por <span class="font-medium">{{.AuthorName}}</span></p>
+    {{if .Items}}
+    <div class="space-y-1.5">
+        {{range .Items}}
+        <div class="flex items-center gap-2.5">
+            {{if eq .Position 1}}
+            <span class="w-[22px] h-[22px] rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 flex items-center justify-center text-[10px] font-bold text-amber-900 shadow-sm shrink-0">1</span>
+            {{else if eq .Position 2}}
+            <span class="w-[22px] h-[22px] rounded-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center text-[10px] font-bold text-gray-600 shadow-sm shrink-0">2</span>
+            {{else if eq .Position 3}}
+            <span class="w-[22px] h-[22px] rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-[10px] font-bold text-white shadow-sm shrink-0">3</span>
+            {{end}}
+            <span class="text-[13px] text-gray-600 dark:text-gray-400 truncate">{{.Name}}</span>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+</a>
+{{end}}
+
+<!-- Partial: cartão de lista colectiva -->
+{{define "collective_card"}}
+<a href="/collective/{{.ID}}"
+   class="group ios-card rounded-2xl p-5 hover:shadow-xl hover:shadow-teal-100/40 dark:hover:shadow-teal-900/20 hover:-translate-y-0.5 transition-all duration-300">
+    <div class="flex items-start justify-between mb-2">
+        <h3 class="font-semibold text-[15px] text-gray-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors leading-snug pr-2">{{.Name}}</h3>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400 bg-teal-50/80 dark:bg-teal-500/10 px-2.5 py-0.5 rounded-full border border-teal-100/50 dark:border-teal-500/20 shrink-0">Coletiva</span>
+    </div>
+    <div class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 flex-wrap">
+        <span>por <span class="font-medium">{{.CreatorName}}</span></span>
+        <span>&middot;</span>
+        <span>{{formatDate .CreatedAt}}</span>
+        <span>&middot;</span>
+        <span class="flex items-center gap-1.5">
+            {{.Ranked}} votaram
+            {{if .HasVoted}}
+            <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200/80 dark:bg-white/10 shrink-0" title="Já votaste">
+                <svg class="w-2.5 h-2.5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            {{end}}
+        </span>
+    </div>
+    {{if .Description}}
+    <p class="text-sm text-gray-400 dark:text-gray-500 mt-2 line-clamp-1">{{.Description}}</p>
+    {{end}}
+</a>
+{{end}}

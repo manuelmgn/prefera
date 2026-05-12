@@ -1,0 +1,108 @@
+{{define "duel"}}
+<div class="relative w-full h-dvh">
+    <!-- Lado esquerdo/superior -->
+    <button class="duel-btn absolute inset-0 h-1/2 md:h-full md:w-1/2 flex flex-col justify-center items-center cursor-pointer border-0 p-8 transition-all duration-200 active:brightness-125 active:scale-[0.98] focus:outline-none overflow-hidden"
+            style="background: linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);"
+            hx-post="/versus/{{.Session.ID}}/choose"
+            hx-vals='{"match_id": "{{.Duel.ID}}", "winner_id": "{{.Duel.ItemAID}}"}'
+            hx-target="#duel-area"
+            hx-swap="innerHTML">
+        {{if .Duel.ItemAImage}}
+        <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('{{.Duel.ItemAImage}}');"></div>
+        <div class="absolute inset-0 bg-indigo-950/30"></div>
+        <div class="absolute inset-0 bg-black/10"></div>
+        {{end}}
+        <span class="text-white/90 font-bold text-center leading-tight break-words relative z-10"
+              style="font-size: clamp(1.4rem, 5vw, 3rem); text-shadow: 0 2px 12px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.5);">
+            {{.Duel.ItemAName}}
+        </span>
+        {{if .Duel.ItemADescription}}
+        <span class="text-white/70 text-center leading-snug break-words relative z-10 mt-2 max-w-[90%] line-clamp-2 md:line-clamp-3"
+              style="font-size: clamp(0.7rem, 2vw, 0.95rem); text-shadow: 0 1px 6px rgba(0,0,0,0.8);">
+            {{.Duel.ItemADescription}}
+        </span>
+        {{end}}
+        {{if .Duel.ItemALink}}
+        <a href="{{.Duel.ItemALink}}" target="_blank" rel="noopener noreferrer"
+           onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, '_blank');"
+           class="absolute top-3 left-1/2 -translate-x-1/2 md:top-auto md:bottom-6 z-20 w-9 h-9 rounded-full bg-black/30 backdrop-blur-xl border border-white/15 flex items-center justify-center hover:bg-white/20 transition-colors">
+            {{if eq (linkType .Duel.ItemALink) "wiki"}}
+            <span class="text-white font-bold text-sm" style="font-family:serif;">W</span>
+            {{else if eq (linkType .Duel.ItemALink) "videos"}}
+            <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            {{else if eq (linkType .Duel.ItemALink) "musica"}}
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+            {{else if eq (linkType .Duel.ItemALink) "noticias"}}
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+            {{else if eq (linkType .Duel.ItemALink) "social"}}
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            {{else}}
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+            {{end}}
+        </a>
+        {{end}}
+    </button>
+
+    <!-- Lado direito/inferior -->
+    <button class="duel-btn absolute bottom-0 left-0 right-0 h-1/2 md:h-full md:top-0 md:left-1/2 md:right-0 md:w-1/2 flex flex-col justify-center items-center cursor-pointer border-0 p-8 transition-all duration-200 active:brightness-125 active:scale-[0.98] focus:outline-none overflow-hidden"
+            style="background: linear-gradient(145deg, #4a1942 0%, #6b2fa0 40%, #9333ea 100%);"
+            hx-post="/versus/{{.Session.ID}}/choose"
+            hx-vals='{"match_id": "{{.Duel.ID}}", "winner_id": "{{.Duel.ItemBID}}"}'
+            hx-target="#duel-area"
+            hx-swap="innerHTML">
+        {{if .Duel.ItemBImage}}
+        <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('{{.Duel.ItemBImage}}');"></div>
+        <div class="absolute inset-0 bg-purple-950/30"></div>
+        <div class="absolute inset-0 bg-black/10"></div>
+        {{end}}
+        <span class="text-white/90 font-bold text-center leading-tight break-words relative z-10"
+              style="font-size: clamp(1.4rem, 5vw, 3rem); text-shadow: 0 2px 12px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.5);">
+            {{.Duel.ItemBName}}
+        </span>
+        {{if .Duel.ItemBDescription}}
+        <span class="text-white/70 text-center leading-snug break-words relative z-10 mt-2 max-w-[90%] line-clamp-2 md:line-clamp-3"
+              style="font-size: clamp(0.7rem, 2vw, 0.95rem); text-shadow: 0 1px 6px rgba(0,0,0,0.8);">
+            {{.Duel.ItemBDescription}}
+        </span>
+        {{end}}
+        {{if .Duel.ItemBLink}}
+        <a href="{{.Duel.ItemBLink}}" target="_blank" rel="noopener noreferrer"
+           onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, '_blank');"
+           class="absolute bottom-3 left-1/2 -translate-x-1/2 md:bottom-6 z-20 w-9 h-9 rounded-full bg-black/30 backdrop-blur-xl border border-white/15 flex items-center justify-center hover:bg-white/20 transition-colors">
+            {{if eq (linkType .Duel.ItemBLink) "wiki"}}
+            <span class="text-white font-bold text-sm" style="font-family:serif;">W</span>
+            {{else if eq (linkType .Duel.ItemBLink) "videos"}}
+            <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            {{else if eq (linkType .Duel.ItemBLink) "musica"}}
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
+            {{else if eq (linkType .Duel.ItemBLink) "noticias"}}
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+            {{else if eq (linkType .Duel.ItemBLink) "social"}}
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            {{else}}
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+            {{end}}
+        </a>
+        {{end}}
+    </button>
+
+    <!-- VS superposto no centro -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+        <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-black/30 backdrop-blur-xl border border-white/10 flex items-center justify-center shadow-2xl">
+            <span class="vs-badge" style="font-size: clamp(1.5rem, 3vw, 2.2rem);">VS</span>
+        </div>
+    </div>
+
+    <!-- Linha divisória sutil -->
+    <div class="absolute left-0 right-0 top-1/2 h-px bg-white/10 md:top-0 md:bottom-0 md:left-1/2 md:w-px md:h-full pointer-events-none"></div>
+</div>
+
+<script>
+(function() {
+    var c = document.getElementById('counter-text');
+    if (c) c.textContent = '{{.Current}}/{{.Total}}';
+    var u = document.querySelector('.versus-undo');
+    if (u) u.style.display = {{if .CanUndo}}'block'{{else}}'none'{{end}};
+})();
+</script>
+{{end}}

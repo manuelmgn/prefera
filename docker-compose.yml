@@ -1,0 +1,24 @@
+# Docker Compose para proj_listas
+# Stack: Projetos | Container: proj_listas
+# Porto: 7010
+
+services:
+  proj_listas:
+    build: .
+    container_name: proj_listas
+    ports:
+      - "7010:7010"
+    volumes:
+      # Volume para persistir a base de dados SQLite
+      - /mnt/Data/Apps2/projetos/proj_listas/dominios.txt:/app/dominios.txt
+      - ./data:/app/data
+    environment:
+      - DB_PATH=/app/data/listas.db
+    networks:
+      - truerat_public
+    restart: unless-stopped
+    mem_limit: 256m
+    memswap_limit: 512m
+networks:
+  truerat_public:
+    external: true

@@ -1,0 +1,127 @@
+{{define "reorder_section"}}
+<!-- Reordenar elementos -->
+<div class="ios-card rounded-2xl overflow-hidden mb-5" x-data="{ open: false }">
+    <button @click="open = !open" class="w-full flex items-center justify-between px-5 py-4 group hover:bg-white/40 dark:hover:bg-white/5 transition">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-violet-100/80 dark:bg-violet-500/15 flex items-center justify-center">
+                <svg class="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                </svg>
+            </div>
+            <div class="text-left">
+                {{if .HideItems}}
+                <span class="text-[15px] font-semibold text-gray-800 dark:text-gray-200">Votar nesta lista</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 block">Os elementos serám revelados no modo versus</span>
+                {{else}}
+                <span class="text-[15px] font-semibold text-gray-800 dark:text-gray-200">
+                    Reordenar elementos
+                </span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 block">Arrasta ou usa o modo versus</span>
+                {{end}}
+            </div>
+        </div>
+        <svg :class="open ? 'rotate-180' : ''" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+    <div x-show="open" x-collapse>
+        <div class="px-5 pb-5 border-t border-gray-100/60 dark:border-white/5 pt-4 space-y-3">
+            {{if not .HideItems}}
+            <!-- Orde manual (oculta se hide_items) -->
+            <div class="ios-card rounded-xl p-4 border border-gray-100/60 dark:border-white/5">
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Orde manual</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Arrasta os elementos para ordená-los</p>
+                <div class="space-y-1.5" id="{{if .Collective}}collective-sortable{{else}}sortable-items{{end}}">
+                    {{if .Collective}}
+                    {{range .Items}}
+                    <div class="sortable-item flex items-center gap-2.5 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/8 rounded-lg px-3 py-2.5 border border-gray-100/60 dark:border-white/5 cursor-grab active:cursor-grabbing transition-colors"
+                         data-id="{{.ID}}">
+                        <span class="drag-handle text-gray-300 dark:text-gray-600 text-base select-none">&#10495;</span>
+                        <span class="rank-number w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0
+                            {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900 shadow-sm
+                            {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600 shadow-sm
+                            {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm
+                            {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">{{.Position}}</span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">{{.Name}}</span>
+                    </div>
+                    {{end}}
+                    {{else}}
+                    {{range .List.Items}}
+                    <li class="sortable-item flex items-center gap-3 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/8 rounded-xl px-4 py-3.5 border border-gray-100/60 dark:border-white/5 cursor-grab active:cursor-grabbing transition-colors list-none"
+                        data-id="{{.ID}}">
+                        <span class="drag-handle text-gray-300 dark:text-gray-600 text-lg select-none">&#10495;</span>
+                        <span class="rank-number w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0
+                            {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900 shadow-sm
+                            {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600 shadow-sm
+                            {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm
+                            {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">{{.Position}}</span>
+                        <span class="text-[15px] text-gray-700 dark:text-gray-300 font-medium">{{.Name}}</span>
+                    </li>
+                    {{end}}
+                    {{end}}
+                </div>
+                {{if .Collective}}
+                <button onclick="saveCollectiveOrder({{.Collective.ID}})"
+                        class="w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
+                    Guardar a minha orde
+                </button>
+                {{else}}
+                <button onclick="saveOrder({{.List.ID}})"
+                        class="btn-save-order w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
+                    Guardar orde
+                </button>
+                {{end}}
+            </div>
+
+            <!-- Versus -->
+            <div class="text-center text-xs text-gray-400 dark:text-gray-500 py-1">ou</div>
+            {{end}}
+
+            <form method="POST" action="{{if .Collective}}/collective/{{.Collective.ID}}/versus{{else}}/lists/{{.List.ID}}/versus{{end}}" x-data="{mode: 'rapido'}" class="ios-card rounded-xl p-4 border border-gray-100/60 dark:border-white/5">
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Modo Versus</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Ordena mediante enfrentamentos 1 vs 1. {{if not .HideItems}}Podes reordenar manualmente depois.{{end}}</p>
+                <input type="hidden" name="mode" :value="mode">
+                <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-lg p-1 gap-1 mb-2">
+                    <button type="button" @click="mode = 'rapido'"
+                            :class="mode === 'rapido' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
+                            class="flex-1 py-2 rounded-md text-xs transition-all duration-200 text-center">
+                        Rápido
+                    </button>
+                    <button type="button" @click="mode = 'detalhado'"
+                            :class="mode === 'detalhado' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
+                            class="flex-1 py-2 rounded-md text-xs transition-all duration-200 text-center">
+                        Detalhado
+                    </button>
+                </div>
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-3 leading-relaxed">
+                    <strong class="text-gray-500 dark:text-gray-400">Rápido:</strong> menos perguntas, resultado menos exato.
+                    <strong class="text-gray-500 dark:text-gray-400">Detalhado:</strong> mais perguntas, resultado mais certeiro.
+                    {{if not .HideItems}}Podes reordenar manualmente depois.{{end}}
+                </p>
+                <button type="submit"
+                        class="w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98]">
+                    Começar Versus
+                </button>
+            </form>
+
+            {{if and .Collective .HasRanked}}
+            <!-- Apagar os meus votos (dentro da secçom de reordenar, em colectivas) -->
+            <form method="POST" action="/collective/{{.Collective.ID}}/delete-votes"
+                  onsubmit="return confirm('Tens a certeza? Os teus votos nesta lista serám apagados.')"
+                  class="ios-card rounded-xl p-4 border border-red-100/60 dark:border-red-500/10">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Apagar os meus votos</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Remove a tua votaçom desta lista</p>
+                    </div>
+                    <button type="submit"
+                            class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 text-sm font-semibold transition-colors shrink-0">
+                        Apagar
+                    </button>
+                </div>
+            </form>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}
