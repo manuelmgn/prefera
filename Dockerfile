@@ -28,7 +28,7 @@ COPY --from=builder /build/static ./static
 # Create directory for database
 RUN mkdir -p /app/data
 
-# Variáveis de ambiente
+# Environment variables
 ENV DB_PATH=/app/data/listas.db
 ENV TMPL_PATH=/app/templates
 ENV STATIC_PATH=/app/static
