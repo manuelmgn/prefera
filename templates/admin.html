@@ -61,7 +61,7 @@
     <!-- SECÇOM 1: Listas individuais -->
     <h3 class="text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-4">Listas individuais</h3>
 
-    <!-- Gráfico de barras — Listas -->
+    <!-- Bar chart — Lists -->
     <div class="ios-card rounded-2xl p-5 mb-6">
         <h4 class="font-semibold text-gray-900 dark:text-white text-[15px] mb-4">Listas por utilizadore</h4>
         <div class="relative" style="height: 280px;">
@@ -138,7 +138,7 @@
                                     </button>
                                 </form>
                             </div>
-                            <!-- Formulário inline para mudar palavra-chave -->
+                            <!-- Inline form to change password -->
                             <div x-show="showPw" x-collapse class="mt-2">
                                 <form method="POST" action="/admin/users/{{.ID}}/password" class="flex gap-1.5">
                                     <input type="password" name="new_password" required minlength="6" placeholder="Nova palavra-chave"
@@ -162,7 +162,7 @@
     <!-- SECÇOM 2: Listas coletivas -->
     <h3 class="text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-4">Listas coletivas</h3>
 
-    <!-- Gráfico de barras — Colectivas -->
+    <!-- Bar chart — Collectives -->
     <div class="ios-card rounded-2xl p-5 mb-6">
         <h4 class="font-semibold text-gray-900 dark:text-white text-[15px] mb-4">Colectivas por utilizador</h4>
         <div class="relative" style="height: 280px;">

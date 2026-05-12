@@ -1,9 +1,9 @@
 /* ===========================================
-   APP.CSS — Estilos personalizados de Listas
-   Mobile-first, sobre Pico CSS
+   APP.CSS — Custom styles for Listas
+   Mobile-first, built on Pico CSS
    =========================================== */
 
-/* --- Variáveis de cor --- */
+/* --- Color variables --- */
 :root {
     --gold: #FFD700;
     --silver: #C0C0C0;
@@ -14,7 +14,7 @@
     --bg-card: #16213e;
 }
 
-/* --- Navegaçom --- */
+/* --- Navigation --- */
 .app-nav {
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--pico-muted-border-color);
@@ -105,7 +105,7 @@
     opacity: 0.6;
 }
 
-/* Preview de elementos no card da lista própria */
+/* Preview of items in the list card */
 .list-preview {
     padding: 0.25rem 0;
 }
@@ -133,7 +133,7 @@
 .pos-2 .pos-badge { background: var(--silver); color: #333; }
 .pos-3 .pos-badge { background: var(--bronze); color: #fff; }
 
-/* Listas públicas (cards pequenos) */
+/* Public lists (small cards) */
 .public-lists-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -176,7 +176,7 @@
     opacity: 0.6;
 }
 
-/* --- Criar lista --- */
+/* --- Create list --- */
 .create-container {
     max-width: 600px;
     margin: 0 auto;
@@ -237,7 +237,7 @@
     width: auto;
 }
 
-/* Opçons de ordenaçom */
+/* Ordering options */
 .create-actions {
     text-align: center;
     margin-top: 1.5rem;
@@ -267,7 +267,7 @@
     background: linear-gradient(135deg, #ff1a1a, var(--vs-red));
 }
 
-/* --- Vista de lista --- */
+/* --- List view --- */
 .list-detail {
     max-width: 600px;
     margin: 0 auto;
@@ -329,7 +329,7 @@
     flex-wrap: wrap;
 }
 
-/* --- Editar lista --- */
+/* --- Edit list --- */
 .edit-container {
     max-width: 600px;
     margin: 0 auto;
@@ -358,7 +358,7 @@
     cursor: grabbing;
 }
 
-/* Estilo quando o elemento está sendo arrastado */
+/* Style when element is being dragged */
 .sortable-item.sortable-ghost {
     opacity: 0.4;
 }
@@ -395,7 +395,7 @@
     margin-bottom: 0.75rem;
 }
 
-/* --- VERSUS: Pantalla de batalha --- */
+/* --- VERSUS: Battle screen --- */
 .versus-body {
     margin: 0;
     padding: 0;
@@ -442,17 +442,17 @@
     height: 100vh;
 }
 
-/* Container do duelo: divide a pantalla em 2 */
+/* Duel container: divides screen in 2 */
 .duel-container {
     display: grid;
     width: 100%;
     height: 100vh;
-    /* Em mobile: vertical (um encima do outro) */
+    /* On mobile: vertical (one above the other) */
     grid-template-rows: 1fr auto 1fr;
     grid-template-columns: 1fr;
 }
 
-/* Em pantallas grandes: horizontal (lado a lado) */
+/* On large screens: horizontal (side by side) */
 @media (min-width: 768px) {
     .duel-container {
         grid-template-rows: 1fr;
@@ -460,7 +460,7 @@
     }
 }
 
-/* Cada lado é um botom clicável */
+/* Each side is a clickable button */
 .duel-side {
     display: flex;
     justify-content: center;
@@ -504,7 +504,7 @@
     word-break: break-word;
 }
 
-/* VS central — estética Street Fighter */
+/* Central VS — Street Fighter aesthetic */
 .duel-vs {
     display: flex;
     justify-content: center;
@@ -529,7 +529,7 @@
     letter-spacing: 0.1em;
 }
 
-/* --- Resultado Versus --- */
+/* --- Versus result --- */
 .versus-result-container {
     max-width: 600px;
     margin: 0 auto;
@@ -541,13 +541,13 @@
     flex-wrap: wrap;
 }
 
-/* --- Mudar palavra-chave --- */
+/* --- Change password --- */
 .password-container {
     max-width: 400px;
     margin: 0 auto;
 }
 
-/* --- Responsive: ajustes para mobile --- */
+/* --- Responsive: mobile adjustments --- */
 @media (max-width: 768px) {
     .app-nav ul {
         gap: 0.25rem;

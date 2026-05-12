@@ -1,6 +1,6 @@
 {{define "duel"}}
 <div class="relative w-full h-dvh">
-    <!-- Lado esquerdo/superior -->
+    <!-- Left/top side -->
     <button class="duel-btn absolute inset-0 h-1/2 md:h-full md:w-1/2 flex flex-col justify-center items-center cursor-pointer border-0 p-8 transition-all duration-200 active:brightness-125 active:scale-[0.98] focus:outline-none overflow-hidden"
             style="background: linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);"
             hx-post="/versus/{{.Session.ID}}/choose"
@@ -93,7 +93,7 @@
         </div>
     </div>
 
-    <!-- Linha divisória sutil -->
+    <!-- Subtle divider line -->
     <div class="absolute left-0 right-0 top-1/2 h-px bg-white/10 md:top-0 md:bottom-0 md:left-1/2 md:w-px md:h-full pointer-events-none"></div>
 </div>
 

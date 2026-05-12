@@ -39,10 +39,10 @@ func main() {
 	// Load the allowed link domains database
 	domsPath := os.Getenv("DOMAINS_PATH")
 	if domsPath == "" {
-		domsPath = "./dominios.txt"
+		domsPath = "./config/link_domains.txt"
 	}
 	if err := handlers.LoadLinkDomains(domsPath); err != nil {
-		log.Fatalf("Failed to load domains.txt: %v", err)
+		log.Fatalf("Failed to load link_domains.txt: %v", err)
 	}
 
 	// Load HTML templates from disk

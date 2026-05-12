@@ -173,7 +173,7 @@
     </button>
     <p x-show="items.length < 2" class="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">Engade ao menos 2 elementos</p>
 
-    <!-- Formulário oculto -->
+    <!-- Hidden form -->
     <form x-ref="form" method="POST" action="/collective" style="display:none">
         <input type="hidden" name="name" :value="listName">
         <input type="hidden" name="description" :value="description">
