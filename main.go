@@ -11,9 +11,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"proj_listas/internal/auth"
-	"proj_listas/internal/db"
-	"proj_listas/internal/handlers"
+	"prefera/internal/auth"
+	"prefera/internal/db"
+	"prefera/internal/handlers"
 )
 
 func main() {

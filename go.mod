@@ -1,4 +1,4 @@
-module proj_listas
+module prefera
 
 go 1.22
 

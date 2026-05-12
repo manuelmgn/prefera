@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"proj_listas/internal/auth"
-	"proj_listas/internal/models"
+	"prefera/internal/auth"
+	"prefera/internal/models"
 )
 
 // VersusStart initiates a new Versus session for a list.

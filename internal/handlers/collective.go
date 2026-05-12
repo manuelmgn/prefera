@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"proj_listas/internal/auth"
-	"proj_listas/internal/models"
+	"prefera/internal/auth"
+	"prefera/internal/models"
 )
 
 // CollectiveCreate renders the form for creating a collective list.

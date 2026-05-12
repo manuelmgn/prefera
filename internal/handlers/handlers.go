@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"proj_listas/internal/auth"
+	"prefera/internal/auth"
 )
 
 // Handler holds the shared dependencies for all HTTP controllers.
