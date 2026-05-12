@@ -7,25 +7,25 @@ import (
 	"strings"
 )
 
-// CollectiveList representa uma lista colectiva/partilhada
+// CollectiveList represents a shared/collective list.
 type CollectiveList struct {
 	ID             int
 	CreatorID      int
 	Name           string
 	Description    string
 	ShareCode      string
-	IsPublic       bool   // true = todos podem ver; false = só participantes
-	VotePermission string // "all" = todos votam; "link" = só com link; "closed" = ninguém
-	HideItems      bool   // true = elementos ocultos até votar; força modo versus
+	IsPublic       bool   // true = anyone can view; false = participants only
+	VotePermission string // "all" = anyone votes; "link" = share link required; "closed" = nobody
+	HideItems      bool   // true = items hidden until the user votes; forces Versus mode
 	IsActive       bool
 	CreatedAt      string
-	CreatorName    string // preenchido via JOIN
-	Participants   int    // contagem de participantes
-	Ranked         int    // quantos já rankearam
-	HasVoted       bool   // true se o utilizador actual já rankeou nesta lista
+	CreatorName    string // populated via JOIN
+	Participants   int    // participant count
+	Ranked         int    // number of users who have ranked
+	HasVoted       bool   // true if the current user has already ranked in this list
 }
 
-// CollectiveItem representa um elemento canónico de uma lista colectiva
+// CollectiveItem represents a canonical item in a collective list.
 type CollectiveItem struct {
 	ID           int
 	CollectiveID int
@@ -34,25 +34,25 @@ type CollectiveItem struct {
 	Link         string
 	Image        string
 	Position     int
-	AvgPosition  float64 // preenchido na consulta de resultado
-	IsTied       bool    // true se tem o mesmo AvgPosition que o item anterior (empate)
+	AvgPosition  float64 // populated in the aggregate result query
+	IsTied       bool    // true if this item shares the same AvgPosition as the previous one (tie)
 }
 
-// CollectiveParticipant representa um participante
+// CollectiveParticipant represents a participant in a collective list.
 type CollectiveParticipant struct {
 	UserID      int
 	DisplayName string
 	HasRanked   bool
 }
 
-// CollectiveUserRanking representa o ranking completo de um utilizador
+// CollectiveUserRanking represents the full ranking submitted by a single user.
 type CollectiveUserRanking struct {
 	UserID      int
 	DisplayName string
 	Items       []CollectiveItem
 }
 
-// GenerateShareCode gera um código único de 8 caracteres alfanuméricos maiúsculos
+// GenerateShareCode generates a unique 8-character alphanumeric code (uppercase).
 func GenerateShareCode(db *sql.DB) (string, error) {
 	for i := 0; i < 10; i++ {
 		b := make([]byte, 5)
@@ -72,19 +72,19 @@ func GenerateShareCode(db *sql.DB) (string, error) {
 	return "", sql.ErrNoRows
 }
 
-// CreateCollective cria uma nova lista colectiva com os seus elementos.
-// O criador é automaticamente adicionado como participante.
+// CreateCollective creates a new collective list with its items.
+// The creator is automatically added as a participant.
 func CreateCollective(db *sql.DB, creatorID int, name, description string, isPublic bool, votePermission string, hideItems bool, items []ListItemInput) (int, string, error) {
 	code, err := GenerateShareCode(db)
 	if err != nil {
 		return 0, "", err
 	}
 
-	// Validar vote_permission
+	// Validate vote_permission
 	if votePermission != "link" {
 		votePermission = "all"
 	}
-	// Se é privada, forçar "link"
+	// Private lists always require a share link
 	if !isPublic {
 		votePermission = "link"
 	}
@@ -128,7 +128,7 @@ func CreateCollective(db *sql.DB, creatorID int, name, description string, isPub
 		}
 	}
 
-	// O criador é automaticamente participante
+	// The creator is automatically added as a participant
 	_, err = tx.Exec(
 		"INSERT INTO collective_participants (collective_id, user_id) VALUES (?, ?)",
 		collectiveID, creatorID,
@@ -144,7 +144,7 @@ func CreateCollective(db *sql.DB, creatorID int, name, description string, isPub
 	return collectiveID, code, nil
 }
 
-// GetCollectiveByID obtém uma lista colectiva pelo ID
+// GetCollectiveByID retrieves a collective list by its ID.
 func GetCollectiveByID(db *sql.DB, id int) (*CollectiveList, error) {
 	cl := &CollectiveList{}
 	var isPublicInt, hideItemsInt int
@@ -171,7 +171,7 @@ func GetCollectiveByID(db *sql.DB, id int) (*CollectiveList, error) {
 	return cl, nil
 }
 
-// GetCollectiveByShareCode obtém uma lista colectiva pelo código de partilha
+// GetCollectiveByShareCode retrieves a collective list by its share code.
 func GetCollectiveByShareCode(db *sql.DB, code string) (*CollectiveList, error) {
 	var id int
 	err := db.QueryRow("SELECT id FROM collective_lists WHERE share_code = ?", code).Scan(&id)
@@ -181,7 +181,7 @@ func GetCollectiveByShareCode(db *sql.DB, code string) (*CollectiveList, error) 
 	return GetCollectiveByID(db, id)
 }
 
-// GetCollectiveItems obtém os elementos canónicos de uma lista colectiva
+// GetCollectiveItems retrieves the canonical items of a collective list.
 func GetCollectiveItems(db *sql.DB, collectiveID int) ([]CollectiveItem, error) {
 	rows, err := db.Query(
 		"SELECT id, collective_id, name, description, link, image, position FROM collective_items WHERE collective_id = ? ORDER BY position",
@@ -203,7 +203,7 @@ func GetCollectiveItems(db *sql.DB, collectiveID int) ([]CollectiveItem, error) 
 	return items, nil
 }
 
-// IsParticipant verifica se um utilizador já faz parte de uma lista colectiva
+// IsParticipant checks whether a user is already a participant in a collective list.
 func IsParticipant(db *sql.DB, collectiveID, userID int) (bool, error) {
 	var count int
 	err := db.QueryRow(
@@ -213,7 +213,7 @@ func IsParticipant(db *sql.DB, collectiveID, userID int) (bool, error) {
 	return count > 0, err
 }
 
-// HasUserRanked verifica se um utilizador já rankeou os elementos
+// HasUserRanked checks whether a user has already submitted a ranking.
 func HasUserRanked(db *sql.DB, collectiveID, userID int) (bool, error) {
 	var count int
 	err := db.QueryRow(
@@ -223,41 +223,41 @@ func HasUserRanked(db *sql.DB, collectiveID, userID int) (bool, error) {
 	return count > 0, err
 }
 
-// CanUserVote verifica se um utilizador pode votar numa lista colectiva
+// CanUserVote checks whether a user is allowed to vote in a collective list.
 func CanUserVote(db *sql.DB, collectiveID, userID int) bool {
 	cl, err := GetCollectiveByID(db, collectiveID)
 	if err != nil || !cl.IsActive {
 		return false
 	}
-	// Se está fechada, ninguém pode votar
+	// Closed lists: nobody can vote
 	if cl.VotePermission == "closed" {
 		return false
 	}
-	// Se vote_permission é "all", qualquer utilizador logado pode votar
+	// "all": any logged-in user can vote
 	if cl.VotePermission == "all" {
 		return true
 	}
-	// Se é "link", precisa ser participante (via link de partilha)
+	// "link": must be a participant (joined via share link)
 	isP, _ := IsParticipant(db, collectiveID, userID)
 	return isP
 }
 
-// CanUserView verifica se um utilizador pode ver uma lista colectiva
+// CanUserView checks whether a user is allowed to view a collective list.
 func CanUserView(db *sql.DB, collectiveID, userID int) bool {
 	cl, err := GetCollectiveByID(db, collectiveID)
 	if err != nil {
 		return false
 	}
-	// Listas públicas: todos podem ver
+	// Public lists: anyone can view
 	if cl.IsPublic {
 		return true
 	}
-	// Listas privadas: só participantes
+	// Private lists: participants only
 	isP, _ := IsParticipant(db, collectiveID, userID)
 	return isP
 }
 
-// JoinCollective adiciona um utilizador como participante
+// JoinCollective adds a user as a participant in a collective list.
 func JoinCollective(db *sql.DB, collectiveID, userID int) error {
 	_, err := db.Exec(
 		"INSERT OR IGNORE INTO collective_participants (collective_id, user_id) VALUES (?, ?)",
@@ -266,7 +266,7 @@ func JoinCollective(db *sql.DB, collectiveID, userID int) error {
 	return err
 }
 
-// GetParticipants obtém os participantes de uma lista colectiva
+// GetParticipants retrieves all participants of a collective list.
 func GetParticipants(db *sql.DB, collectiveID int) ([]CollectiveParticipant, error) {
 	rows, err := db.Query(`
 		SELECT cp.user_id, COALESCE(NULLIF(u.display_name,''), u.username),
@@ -294,7 +294,7 @@ func GetParticipants(db *sql.DB, collectiveID int) ([]CollectiveParticipant, err
 	return participants, nil
 }
 
-// SaveUserRanking guarda (ou actualiza) o ranking de um utilizador.
+// SaveUserRanking saves (or updates) a user's ranking for a collective list.
 func SaveUserRanking(db *sql.DB, collectiveID, userID int, itemPositions map[int]int) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -323,7 +323,7 @@ func SaveUserRanking(db *sql.DB, collectiveID, userID int, itemPositions map[int
 	return tx.Commit()
 }
 
-// DeleteUserRanking apaga o ranking de um utilizador numa lista colectiva
+// DeleteUserRanking deletes a user's ranking from a collective list.
 func DeleteUserRanking(db *sql.DB, collectiveID, userID int) error {
 	_, err := db.Exec(
 		"DELETE FROM collective_rankings WHERE collective_id = ? AND user_id = ?",
@@ -332,15 +332,15 @@ func DeleteUserRanking(db *sql.DB, collectiveID, userID int) error {
 	return err
 }
 
-// GetCollectiveResult obtém o resultado agregado (média das posições).
-// Só considera utilizadores que efectivamente rankearam.
+// GetCollectiveResult returns the aggregated result (average position per item).
+// Only considers users who have actually submitted a ranking.
 func GetCollectiveResult(db *sql.DB, collectiveID int) ([]CollectiveItem, error) {
-	// Contar quantos utilizadores rankearam
+	// Count how many users have ranked
 	var rankedCount int
 	db.QueryRow("SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = ?", collectiveID).Scan(&rankedCount)
 
 	if rankedCount == 0 {
-		// Sem votos: devolver os items na orde canónica
+		// No votes yet: return items in canonical order
 		return GetCollectiveItems(db, collectiveID)
 	}
 
@@ -384,7 +384,7 @@ func GetCollectiveResult(db *sql.DB, collectiveID int) ([]CollectiveItem, error)
 	return items, nil
 }
 
-// UpdateCollectiveItemDetails actualiza a descriçom, link e imagem de um elemento colectivo
+// UpdateCollectiveItemDetails updates the description, link, and image of a collective item.
 func UpdateCollectiveItemDetails(db *sql.DB, itemID int, description, link, image string) error {
 	_, err := db.Exec(
 		"UPDATE collective_items SET description = ?, link = ?, image = ? WHERE id = ?",
@@ -393,7 +393,7 @@ func UpdateCollectiveItemDetails(db *sql.DB, itemID int, description, link, imag
 	return err
 }
 
-// GetAllUserRankings obtém os rankings individuais de todos os participantes
+// GetAllUserRankings retrieves the individual rankings of all participants.
 func GetAllUserRankings(db *sql.DB, collectiveID int) ([]CollectiveUserRanking, error) {
 	rows, err := db.Query(`
 		SELECT cr.user_id, COALESCE(NULLIF(u.display_name,''), u.username),
@@ -436,7 +436,7 @@ func GetAllUserRankings(db *sql.DB, collectiveID int) ([]CollectiveUserRanking, 
 	return result, nil
 }
 
-// GetCollectivesForUser obtém todas as listas colectivas em que o utilizador participa
+// GetCollectivesForUser retrieves all collective lists the user participates in.
 func GetCollectivesForUser(db *sql.DB, userID int) ([]CollectiveList, error) {
 	rows, err := db.Query(`
 		SELECT c.id, c.creator_id, c.name, c.description, c.share_code,
@@ -471,7 +471,7 @@ func GetCollectivesForUser(db *sql.DB, userID int) ([]CollectiveList, error) {
 	return lists, nil
 }
 
-// GetPublicCollectives obtém as listas colectivas públicas em que o utilizador NOM participa
+// GetPublicCollectives retrieves public collective lists that the user does NOT participate in.
 func GetPublicCollectives(db *sql.DB, excludeUserID int) ([]CollectiveList, error) {
 	rows, err := db.Query(`
 		SELECT c.id, c.creator_id, c.name, c.description, c.share_code,
@@ -506,7 +506,7 @@ func GetPublicCollectives(db *sql.DB, excludeUserID int) ([]CollectiveList, erro
 	return lists, nil
 }
 
-// GetLatestCollectivesVisible obtém as últimas N listas colectivas visíveis pelo utilizador
+// GetLatestCollectivesVisible retrieves the latest N collective lists visible to the user.
 func GetLatestCollectivesVisible(db *sql.DB, userID, limit int) ([]CollectiveList, error) {
 	rows, err := db.Query(`
 		SELECT c.id, c.creator_id, c.name, c.description, c.share_code,
@@ -542,7 +542,7 @@ func GetLatestCollectivesVisible(db *sql.DB, userID, limit int) ([]CollectiveLis
 	return lists, nil
 }
 
-// GetCollectivesVotedByUser obtém todas as listas colectivas em que o utilizador votou
+// GetCollectivesVotedByUser retrieves all collective lists where the user has submitted a ranking.
 func GetCollectivesVotedByUser(db *sql.DB, userID int) ([]CollectiveList, error) {
 	rows, err := db.Query(`
 		SELECT DISTINCT c.id, c.creator_id, c.name, c.description, c.share_code,
@@ -571,14 +571,14 @@ func GetCollectivesVotedByUser(db *sql.DB, userID int) ([]CollectiveList, error)
 		}
 		cl.IsPublic = isPublicInt == 1
 		cl.HideItems = hideItemsInt == 1
-		cl.HasVoted = true // por definição: esta consulta só retorna listas onde o utilizador votou
+		cl.HasVoted = true // by definition: this query only returns lists where the user has voted
 		lists = append(lists, cl)
 	}
 	return lists, nil
 }
 
-// GetLatestPublicCollectives obtém as últimas N listas colectivas públicas,
-// marcando HasVoted=true se o utilizador actual já rankeou em cada uma.
+// GetLatestPublicCollectives retrieves the latest N public collective lists,
+// setting HasVoted=true for each list where the current user has already ranked.
 func GetLatestPublicCollectives(db *sql.DB, userID, limit int) ([]CollectiveList, error) {
 	rows, err := db.Query(`
 		SELECT c.id, c.creator_id, c.name, c.description, c.share_code,
@@ -617,7 +617,7 @@ func GetLatestPublicCollectives(db *sql.DB, userID, limit int) ([]CollectiveList
 	return lists, nil
 }
 
-// CreateShadowListForVersus cria uma lista "sombra" temporária para usar o versus existente
+// CreateShadowListForVersus creates a temporary "shadow" list to run the Versus engine.
 func CreateShadowListForVersus(db *sql.DB, collectiveID, userID int) (int, error) {
 	cl, err := GetCollectiveByID(db, collectiveID)
 	if err != nil {
@@ -666,9 +666,9 @@ func CreateShadowListForVersus(db *sql.DB, collectiveID, userID int) (int, error
 	return listID, nil
 }
 
-// SyncVersusResultToCollective copia as posições de uma lista sombra de volta
-// para collective_rankings. É um no-op se a lista nom for sombra.
-// Nota: NOM apaga a lista sombra (isso é feito pelo handler depois do redirect).
+// SyncVersusResultToCollective copies the item positions from a shadow list back
+// into collective_rankings. It is a no-op if the list is not a shadow list.
+// Note: does NOT delete the shadow list — the handler does that after the redirect.
 func SyncVersusResultToCollective(db *sql.DB, listID int) error {
 	var collectiveID sql.NullInt64
 	var userID int
@@ -709,7 +709,7 @@ func SyncVersusResultToCollective(db *sql.DB, listID int) error {
 	return nil
 }
 
-// ConvertListToCollective converte uma lista individual numa colectiva.
+// ConvertListToCollective converts an individual list into a collective one.
 func ConvertListToCollective(db *sql.DB, listID, userID int, isPublic bool, votePermission string, hideItems bool) (int, string, error) {
 	list, err := GetListByID(db, listID)
 	if err != nil {
@@ -800,13 +800,13 @@ func ConvertListToCollective(db *sql.DB, listID, userID int, isPublic bool, vote
 	return collectiveID, code, nil
 }
 
-// UpdateCollective actualiza os metadados de uma lista colectiva
+// UpdateCollective updates a collective list's metadata.
 func UpdateCollective(db *sql.DB, collectiveID int, name, description string, isPublic bool, votePermission string, hideItems bool) error {
-	// Validar vote_permission
+	// Validate vote_permission
 	if votePermission != "link" && votePermission != "closed" {
 		votePermission = "all"
 	}
-	// Se é privada e nom está fechada, forçar "link"
+	// Private and not closed: force "link"
 	if !isPublic && votePermission == "all" {
 		votePermission = "link"
 	}
@@ -820,7 +820,7 @@ func UpdateCollective(db *sql.DB, collectiveID int, name, description string, is
 		hideItemsInt = 1
 	}
 
-	// Se está fechada, desactivar; senón, activar
+	// Closed lists are deactivated; all others remain active
 	isActive := 1
 	if votePermission == "closed" {
 		isActive = 0
@@ -833,7 +833,7 @@ func UpdateCollective(db *sql.DB, collectiveID int, name, description string, is
 	return err
 }
 
-// DeleteCollective apaga uma lista colectiva e todos os dados associados (CASCADE)
+// DeleteCollective deletes a collective list and all associated data (via CASCADE).
 func DeleteCollective(db *sql.DB, collectiveID int) error {
 	_, err := db.Exec("DELETE FROM collective_lists WHERE id = ?", collectiveID)
 	return err

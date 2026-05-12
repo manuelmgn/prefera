@@ -13,7 +13,7 @@ import (
 	"proj_listas/internal/models"
 )
 
-// CollectiveCreate mostra o formulário para criar uma lista colectiva
+// CollectiveCreate renders the form for creating a collective list.
 func (h *Handler) CollectiveCreate(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	h.renderPage(w, "collective_create", map[string]interface{}{
@@ -24,7 +24,7 @@ func (h *Handler) CollectiveCreate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// CollectiveSave processa a criaçom de uma lista colectiva
+// CollectiveSave processes the collective list creation form.
 func (h *Handler) CollectiveSave(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 
@@ -77,7 +77,7 @@ func (h *Handler) CollectiveSave(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/collective/"+strconv.Itoa(collectiveID), http.StatusSeeOther)
 }
 
-// CollectiveView mostra uma lista colectiva com resultados agregados e individuais
+// CollectiveView renders a collective list with aggregated and individual results.
 func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -92,18 +92,18 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verificar permissom de visualizaçom
+	// Check view permission
 	isParticipant, _ := models.IsParticipant(h.db, collectiveID, user.ID)
 	if !cl.IsPublic && !isParticipant {
 		http.Error(w, "Sem permissom", http.StatusForbidden)
 		return
 	}
 
-	// Verificar se pode votar
+	// Determine if the user can vote
 	canVote := false
 	if cl.VotePermission != "closed" && cl.IsActive {
 		if cl.VotePermission == "all" && !isParticipant {
-			canVote = true // pode votar, será juntado ao votar
+			canVote = true // will be added as participant on first vote
 		} else if isParticipant {
 			canVote = true
 		}
@@ -130,8 +130,8 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 	hasRanked, _ := models.HasUserRanked(h.db, collectiveID, user.ID)
 	items, _ := models.GetCollectiveItems(h.db, collectiveID)
 
-	// Se hide_items está activo, ocultar resultado e rankings para quem nom votou
-	// O criador vê sempre tudo
+	// If hide_items is active, hide results and rankings for users who haven't voted
+	// The creator always sees everything
 	showResult := true
 	showItems := true
 	if cl.HideItems && !hasRanked && cl.CreatorID != user.ID {
@@ -150,7 +150,7 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 		visibleItems = items
 	}
 
-	// Formatar data de criaçom (SQLite devolve "2006-01-02 15:04:05")
+	// Format creation date (SQLite returns "2006-01-02 15:04:05")
 	createdAtDate := cl.CreatedAt
 	if len(cl.CreatedAt) >= 10 {
 		if t, err := time.Parse("2006-01-02", cl.CreatedAt[:10]); err == nil {
@@ -175,7 +175,7 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// CollectiveJoinDirect permite unir-se via link directo com share_code
+// CollectiveJoinDirect allows joining via a direct link with a share_code.
 func (h *Handler) CollectiveJoinDirect(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	code := strings.ToUpper(chi.URLParam(r, "code"))
@@ -191,14 +191,14 @@ func (h *Handler) CollectiveJoinDirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Juntar automaticamente como participante
+	// Auto-join as participant
 	models.JoinCollective(h.db, cl.ID, user.ID)
 
-	// Redirecionar para a vista da lista
+	// Redirect to the list view
 	http.Redirect(w, r, "/collective/"+strconv.Itoa(cl.ID), http.StatusSeeOther)
 }
 
-// CollectiveReorder guarda a orde manual de um utilizador via drag & drop
+// CollectiveReorder saves a user's manual item order via drag-and-drop.
 func (h *Handler) CollectiveReorder(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -213,13 +213,13 @@ func (h *Handler) CollectiveReorder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verificar se pode votar
+	// Check vote permission
 	if !models.CanUserVote(h.db, collectiveID, user.ID) {
 		http.Error(w, "Sem permissom para votar", http.StatusForbidden)
 		return
 	}
 
-	// Se hide_items está activo e o utilizador nom votou, bloquear orde manual
+	// If hide_items is active and the user hasn't voted yet, block manual ordering
 	if cl.HideItems {
 		hasRanked, _ := models.HasUserRanked(h.db, collectiveID, user.ID)
 		if !hasRanked {
@@ -228,7 +228,7 @@ func (h *Handler) CollectiveReorder(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Se vote_permission é "all", juntar automaticamente como participante
+	// Auto-join as participant if vote_permission is "all"
 	if cl.VotePermission == "all" {
 		models.JoinCollective(h.db, collectiveID, user.ID)
 	}
@@ -252,7 +252,7 @@ func (h *Handler) CollectiveReorder(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// CollectiveVersusStart cria uma lista sombra e inicia versus
+// CollectiveVersusStart creates a shadow list and starts a Versus session.
 func (h *Handler) CollectiveVersusStart(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -272,7 +272,7 @@ func (h *Handler) CollectiveVersusStart(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Se vote_permission é "all", juntar automaticamente
+	// Auto-join if vote_permission is "all"
 	if cl.VotePermission == "all" {
 		models.JoinCollective(h.db, collectiveID, user.ID)
 	}
@@ -297,7 +297,7 @@ func (h *Handler) CollectiveVersusStart(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/versus/"+strconv.Itoa(sessionID), http.StatusSeeOther)
 }
 
-// CollectiveDeleteVotes apaga os votos de um utilizador numa lista colectiva
+// CollectiveDeleteVotes deletes a user's votes on a collective list.
 func (h *Handler) CollectiveDeleteVotes(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -314,7 +314,7 @@ func (h *Handler) CollectiveDeleteVotes(w http.ResponseWriter, r *http.Request) 
 	http.Redirect(w, r, "/collective/"+strconv.Itoa(collectiveID), http.StatusSeeOther)
 }
 
-// CollectiveConvertFromList converte uma lista individual numa colectiva
+// CollectiveConvertFromList converts an individual list into a collective one.
 func (h *Handler) CollectiveConvertFromList(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -347,7 +347,7 @@ func (h *Handler) CollectiveConvertFromList(w http.ResponseWriter, r *http.Reque
 	http.Redirect(w, r, "/collective/"+strconv.Itoa(collectiveID), http.StatusSeeOther)
 }
 
-// CollectiveEditPage mostra a página de ediçom de uma lista colectiva
+// CollectiveEditPage renders the collective list edit page.
 func (h *Handler) CollectiveEditPage(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -377,12 +377,12 @@ func (h *Handler) CollectiveEditPage(w http.ResponseWriter, r *http.Request) {
 		items = nil
 	}
 
-	// CanEditItems: pode editar descriçom/link/imagem se ninguém rankeou ainda
+	// CanEditItems: can edit description/link/image if nobody has ranked yet
 	canEditItems := cl.Ranked == 0
 
-	// CanManageItems: pode engadir/remover/renomear se ninguém rankeou E lista < 5 min
+	// CanManageItems: can add/remove/rename if nobody has ranked AND list is under 5 minutes old
 	var createdAt time.Time
-	// cl.CreatedAt é string, tentar parsear
+	// cl.CreatedAt is a string — try to parse it
 	for _, layout := range []string{"2006-01-02T15:04:05Z", "2006-01-02 15:04:05", "2006-01-02T15:04:05"} {
 		if t, parseErr := time.Parse(layout, cl.CreatedAt); parseErr == nil {
 			createdAt = t
@@ -403,7 +403,7 @@ func (h *Handler) CollectiveEditPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// CollectiveUpdate actualiza os metadados de uma lista colectiva
+// CollectiveUpdate updates a collective list's metadata.
 func (h *Handler) CollectiveUpdate(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -441,7 +441,7 @@ func (h *Handler) CollectiveUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/collective/"+strconv.Itoa(collectiveID), http.StatusSeeOther)
 }
 
-// CollectiveDelete apaga uma lista colectiva (só o criador)
+// CollectiveDelete deletes a collective list (creator only).
 func (h *Handler) CollectiveDelete(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -469,7 +469,7 @@ func (h *Handler) CollectiveDelete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// CollectiveUpdateItemDetails actualiza a descriçom, link e imagem de um elemento colectivo
+// CollectiveUpdateItemDetails updates the description, link, and image of a collective item.
 func (h *Handler) CollectiveUpdateItemDetails(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -489,7 +489,7 @@ func (h *Handler) CollectiveUpdateItemDetails(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// Só permitir se ninguém rankeou ainda
+	// Only allow edits if nobody has ranked yet
 	if cl.Ranked > 0 {
 		http.Error(w, "Nom é possível editar após votos registados", http.StatusForbidden)
 		return

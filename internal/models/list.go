@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// List representa uma lista/ranking criada por um utilizador
+// List represents a ranking list created by a user.
 type List struct {
 	ID          int
 	UserID      int
@@ -14,12 +14,12 @@ type List struct {
 	IsPublic    bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	// Campos auxiliares (nom estám na tabela, preenchidos em consultas JOIN)
+	// Auxiliary fields (not in the table, populated via JOIN queries)
 	AuthorName string
 	Items      []ListItem
 }
 
-// ListItem representa um elemento dentro de uma lista, com a sua posiçom
+// ListItem represents an item within a list, including its position.
 type ListItem struct {
 	ID          int
 	ListID      int
@@ -30,7 +30,7 @@ type ListItem struct {
 	Position    int
 }
 
-// ListItemInput representa um elemento ao ser criado/editado
+// ListItemInput represents an item as received during creation or editing.
 type ListItemInput struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -38,8 +38,8 @@ type ListItemInput struct {
 	Image       string `json:"image"`
 }
 
-// CreateList cria uma nova lista e os seus elementos.
-// Retorna o ID da lista criada.
+// CreateList creates a new list and its items.
+// Returns the ID of the created list.
 func CreateList(db *sql.DB, userID int, name, description string, isPublic bool, items []ListItemInput) (int, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -77,7 +77,7 @@ func CreateList(db *sql.DB, userID int, name, description string, isPublic bool,
 	return int(listID), nil
 }
 
-// GetListByID obtém uma lista pelo seu ID, incluindo os seus elementos ordenados
+// GetListByID retrieves a list by its ID, including its items ordered by position.
 func GetListByID(db *sql.DB, id int) (*List, error) {
 	list := &List{}
 	err := db.QueryRow(`
@@ -94,7 +94,7 @@ func GetListByID(db *sql.DB, id int) (*List, error) {
 		return nil, err
 	}
 
-	// Obter os elementos da lista, ordenados por posiçom
+	// Fetch items ordered by position
 	list.Items, err = GetListItems(db, id)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func GetListByID(db *sql.DB, id int) (*List, error) {
 	return list, nil
 }
 
-// GetListItems obtém os elementos de uma lista ordenados por posiçom
+// GetListItems retrieves all items in a list ordered by position.
 func GetListItems(db *sql.DB, listID int) ([]ListItem, error) {
 	rows, err := db.Query(
 		"SELECT id, list_id, name, description, link, image, position FROM list_items WHERE list_id = ? ORDER BY position",
@@ -125,7 +125,7 @@ func GetListItems(db *sql.DB, listID int) ([]ListItem, error) {
 	return items, nil
 }
 
-// GetListsForUser obtém todas as listas de um utilizador
+// GetListsForUser retrieves all lists belonging to a user.
 func GetListsForUser(db *sql.DB, userID int) ([]List, error) {
 	rows, err := db.Query(`
 		SELECT l.id, l.user_id, l.name, l.description, l.is_public,
@@ -150,7 +150,7 @@ func GetListsForUser(db *sql.DB, userID int) ([]List, error) {
 		lists = append(lists, l)
 	}
 
-	// Para cada lista, obter os 3 primeiros elementos (para o dashboard)
+	// Fetch the top 3 items for each list (used in the dashboard)
 	for i := range lists {
 		items, err := GetTopItems(db, lists[i].ID, 3)
 		if err != nil {
@@ -162,7 +162,7 @@ func GetListsForUser(db *sql.DB, userID int) ([]List, error) {
 	return lists, nil
 }
 
-// GetPublicLists obtém todas as listas públicas de outros utilizadores
+// GetPublicLists retrieves all public lists belonging to other users.
 func GetPublicLists(db *sql.DB, excludeUserID int) ([]List, error) {
 	rows, err := db.Query(`
 		SELECT l.id, l.user_id, l.name, l.description, l.is_public,
@@ -187,7 +187,7 @@ func GetPublicLists(db *sql.DB, excludeUserID int) ([]List, error) {
 		lists = append(lists, l)
 	}
 
-	// Obter o top 3 de cada lista pública
+	// Fetch top 3 items for each public list
 	for i := range lists {
 		items, err := GetTopItems(db, lists[i].ID, 3)
 		if err != nil {
@@ -199,7 +199,7 @@ func GetPublicLists(db *sql.DB, excludeUserID int) ([]List, error) {
 	return lists, nil
 }
 
-// GetRecentListsForUser obtém as listas do utilizador dos últimos 3 meses, limitadas
+// GetRecentListsForUser retrieves the user's lists from the last 3 months, up to the given limit.
 func GetRecentListsForUser(db *sql.DB, userID, limit int) ([]List, error) {
 	rows, err := db.Query(`
 		SELECT l.id, l.user_id, l.name, l.description, l.is_public,
@@ -235,7 +235,7 @@ func GetRecentListsForUser(db *sql.DB, userID, limit int) ([]List, error) {
 	return lists, nil
 }
 
-// CountListsForUser conta o total de listas individuais do utilizador
+// CountListsForUser returns the total number of individual lists owned by a user.
 func CountListsForUser(db *sql.DB, userID int) (int, error) {
 	var n int
 	err := db.QueryRow(
@@ -245,7 +245,7 @@ func CountListsForUser(db *sql.DB, userID int) (int, error) {
 	return n, err
 }
 
-// GetLatestPublicLists obtém as últimas listas públicas de outros utilizadores, limitadas
+// GetLatestPublicLists retrieves the most recent public lists from other users, up to the given limit.
 func GetLatestPublicLists(db *sql.DB, excludeUserID, limit int) ([]List, error) {
 	rows, err := db.Query(`
 		SELECT l.id, l.user_id, l.name, l.description, l.is_public,
@@ -280,7 +280,7 @@ func GetLatestPublicLists(db *sql.DB, excludeUserID, limit int) ([]List, error) 
 	return lists, nil
 }
 
-// GetTopItems obtém os N primeiros elementos de uma lista (por posiçom)
+// GetTopItems retrieves the top N items from a list ordered by position.
 func GetTopItems(db *sql.DB, listID, limit int) ([]ListItem, error) {
 	rows, err := db.Query(
 		"SELECT id, list_id, name, description, link, image, position FROM list_items WHERE list_id = ? ORDER BY position LIMIT ?",
@@ -302,7 +302,7 @@ func GetTopItems(db *sql.DB, listID, limit int) ([]ListItem, error) {
 	return items, nil
 }
 
-// UpdateList actualiza o nome, descriçom e visibilidade de uma lista
+// UpdateList updates a list's name, description, and visibility.
 func UpdateList(db *sql.DB, listID int, name, description string, isPublic bool) error {
 	_, err := db.Exec(`
 		UPDATE lists SET name = ?, description = ?, is_public = ?, updated_at = CURRENT_TIMESTAMP
@@ -311,8 +311,8 @@ func UpdateList(db *sql.DB, listID int, name, description string, isPublic bool)
 	return err
 }
 
-// UpdateItemPositions actualiza a posiçom de cada elemento numa lista.
-// Recebe uma lista de IDs de itens na nova ordem.
+// UpdateItemPositions updates the position of each item in a list.
+// Receives an ordered slice of item IDs.
 func UpdateItemPositions(db *sql.DB, listID int, itemIDs []int) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -320,7 +320,7 @@ func UpdateItemPositions(db *sql.DB, listID int, itemIDs []int) error {
 	}
 	defer tx.Rollback()
 
-	// Actualizar a posiçom de cada item
+	// Update position for each item
 	for i, itemID := range itemIDs {
 		_, err = tx.Exec(
 			"UPDATE list_items SET position = ? WHERE id = ? AND list_id = ?",
@@ -331,7 +331,7 @@ func UpdateItemPositions(db *sql.DB, listID int, itemIDs []int) error {
 		}
 	}
 
-	// Actualizar o timestamp da lista
+	// Update the list's updated_at timestamp
 	_, err = tx.Exec(
 		"UPDATE lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", listID,
 	)
@@ -342,32 +342,32 @@ func UpdateItemPositions(db *sql.DB, listID int, itemIDs []int) error {
 	return tx.Commit()
 }
 
-// DeleteList apaga uma lista e todos os seus elementos (CASCADE)
+// DeleteList deletes a list and all its items (via CASCADE).
 func DeleteList(db *sql.DB, listID int) error {
 	_, err := db.Exec("DELETE FROM lists WHERE id = ?", listID)
 	return err
 }
 
-// CloneList cria uma cópia de uma lista pública para outro utilizador.
-// Os elementos som copiados com os mesmos nomes e ordem.
+// CloneList creates a copy of a public list for another user.
+// Items are copied with the same names and order.
 func CloneList(db *sql.DB, sourceListID, newUserID int) (int, error) {
-	// Obter a lista original
+	// Fetch the original list
 	source, err := GetListByID(db, sourceListID)
 	if err != nil {
 		return 0, err
 	}
 
-	// Extrair os elementos com descriçom, link e imagem
+	// Extract items with description, link, and image
 	items := make([]ListItemInput, len(source.Items))
 	for i, item := range source.Items {
 		items[i] = ListItemInput{Name: item.Name, Description: item.Description, Link: item.Link, Image: item.Image}
 	}
 
-	// Criar a nova lista (privada por defeito)
+	// Create the new list (private by default)
 	return CreateList(db, newUserID, source.Name, source.Description, false, items)
 }
 
-// UpdateListItems substitui todos os elementos de uma lista.
+// UpdateListItems replaces all items in a list.
 func UpdateListItems(db *sql.DB, listID int, items []ListItemInput) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -400,7 +400,7 @@ func UpdateListItems(db *sql.DB, listID int, items []ListItemInput) error {
 	return tx.Commit()
 }
 
-// UpdateItemDetails actualiza a descriçom, link e imagem de um elemento individual
+// UpdateItemDetails updates the description, link, and image of an individual item.
 func UpdateItemDetails(db *sql.DB, itemID int, description, link, image string) error {
 	_, err := db.Exec(
 		"UPDATE list_items SET description = ?, link = ?, image = ? WHERE id = ?",

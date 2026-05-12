@@ -1,13 +1,13 @@
-// Package auth gere a autenticaçom de utilizadores:
-// hashing de palavras-chave, sessons e middleware de protecçom.
+// Package auth handles user authentication:
+// password hashing, session management, and auth middleware.
 package auth
 
 import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// HashPassword gera um hash bcrypt a partir de uma palavra-chave em texto plano.
-// O custo 12 oferece boa segurança sem ser demasiado lento.
+// HashPassword generates a bcrypt hash from a plain-text password.
+// Cost 12 provides good security without being too slow.
 func HashPassword(plain string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plain), 12)
 	if err != nil {
@@ -16,8 +16,8 @@ func HashPassword(plain string) (string, error) {
 	return string(hash), nil
 }
 
-// CheckPassword compara uma palavra-chave em texto plano com um hash bcrypt.
-// Retorna true se coincidem, false se nom.
+// CheckPassword compares a plain-text password against a bcrypt hash.
+// Returns true if they match, false otherwise.
 func CheckPassword(hash, plain string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain))
 	return err == nil

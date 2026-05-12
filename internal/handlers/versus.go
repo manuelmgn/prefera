@@ -11,7 +11,7 @@ import (
 	"proj_listas/internal/models"
 )
 
-// VersusStart inicia uma nova sessom de Versus para uma lista
+// VersusStart initiates a new Versus session for a list.
 func (h *Handler) VersusStart(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -44,7 +44,7 @@ func (h *Handler) VersusStart(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/versus/"+strconv.Itoa(sessionID), http.StatusSeeOther)
 }
 
-// VersusPage mostra a pantalla de batalha do Versus
+// VersusPage renders the Versus battle screen.
 func (h *Handler) VersusPage(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := strconv.Atoi(chi.URLParam(r, "sid"))
 	if err != nil {
@@ -63,7 +63,7 @@ func (h *Handler) VersusPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verificar se é preciso gerar nova ronda
+	// Generate next round if needed
 	finished, err := models.GenerateNextRoundIfNeeded(h.db, sessionID)
 	if err != nil {
 		http.Error(w, "Erro no torneio", http.StatusInternalServerError)
@@ -82,10 +82,10 @@ func (h *Handler) VersusPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Recarregar sessom (pode ter mudado)
+	// Reload session (may have changed)
 	session, _ = models.GetVersusSession(h.db, sessionID)
 
-	// Renderizar página completa (sem layout normal, pantalla completa)
+	// Render full page without the normal layout (full-screen Versus view)
 	h.renderFullPage(w, "versus", map[string]interface{}{
 		"Session": session,
 		"Duel":    duel,
@@ -96,7 +96,7 @@ func (h *Handler) VersusPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// VersusNext devolve o próximo duelo (partial para HTMX)
+// VersusNext returns the next duel as a partial for HTMX.
 func (h *Handler) VersusNext(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := strconv.Atoi(chi.URLParam(r, "sid"))
 	if err != nil {
@@ -134,7 +134,7 @@ func (h *Handler) VersusNext(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// VersusChoose regista a escolha do utilizador
+// VersusChoose records the user's choice for a match.
 func (h *Handler) VersusChoose(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := strconv.Atoi(chi.URLParam(r, "sid"))
 	if err != nil {
@@ -188,7 +188,7 @@ func (h *Handler) VersusChoose(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// VersusUndo desfaz o último enfrentamento
+// VersusUndo reverts the last match.
 func (h *Handler) VersusUndo(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := strconv.Atoi(chi.URLParam(r, "sid"))
 	if err != nil {
@@ -217,8 +217,8 @@ func (h *Handler) VersusUndo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// VersusResult mostra o resultado final com drag & drop.
-// Para listas colectivas, sincroniza o resultado e redireciona.
+// VersusResult renders the final result with drag-and-drop reordering.
+// For collective shadow lists, syncs the result and redirects.
 func (h *Handler) VersusResult(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	sessionID, err := strconv.Atoi(chi.URLParam(r, "sid"))
@@ -233,18 +233,18 @@ func (h *Handler) VersusResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Aplicar resultados se terminou
+	// Apply results if the tournament has finished
 	if session.Finished {
 		models.ApplyVersusResults(h.db, sessionID)
 	}
 
-	// Se é lista sombra colectiva, sincronizar e redirecionar
+	// If this is a collective shadow list, sync and redirect
 	var collectiveSourceID sql.NullInt64
 	h.db.QueryRow("SELECT collective_source_id FROM lists WHERE id = ?", session.ListID).Scan(&collectiveSourceID)
 	if collectiveSourceID.Valid && collectiveSourceID.Int64 > 0 {
-		// Sincronizar resultado com a lista colectiva
+		// Sync the versus result back to the collective list
 		models.SyncVersusResultToCollective(h.db, session.ListID)
-		// Limpar a lista sombra e a sessom versus (agora é seguro)
+		// Delete the shadow list and its versus session (safe to do after sync)
 		h.db.Exec("DELETE FROM lists WHERE id = ?", session.ListID)
 		http.Redirect(w, r, "/collective/"+strconv.Itoa(int(collectiveSourceID.Int64)), http.StatusSeeOther)
 		return
@@ -264,7 +264,7 @@ func (h *Handler) VersusResult(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// VersusSave guarda a ordem final
+// VersusSave saves the final item order after a Versus session.
 func (h *Handler) VersusSave(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := strconv.Atoi(chi.URLParam(r, "sid"))
 	if err != nil {

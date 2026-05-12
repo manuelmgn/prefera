@@ -8,14 +8,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Migrate executa as migraçons da base de dados.
-// Cria todas as tabelas necessárias se nom existem
-// e insere o utilizador admin por defeito.
+// Migrate runs the database migrations.
+// Creates all required tables if they don't exist
+// and inserts the default admin user.
 func Migrate(database *sql.DB) error {
-	// Schema completo da aplicaçom
+	// Full application schema
 	schema := `
-	-- Tabela de utilizadores
-	-- Armazena todos os utilizadores da aplicaçom
+	-- Users table
+	-- Stores all application users
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT UNIQUE NOT NULL,
@@ -29,16 +29,16 @@ func Migrate(database *sql.DB) error {
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
-	-- Tabela de sessons
-	-- Cada sessom é um token aleatório associado a um utilizador
+	-- Sessions table
+	-- Each session is a random token associated with a user
 	CREATE TABLE IF NOT EXISTS sessions (
 		token TEXT PRIMARY KEY,
 		user_id INTEGER NOT NULL REFERENCES users(id),
 		expires_at DATETIME NOT NULL
 	);
 
-	-- Tabela de listas
-	-- Cada lista pertence a um utilizador e pode ser pública ou privada
+	-- Lists table
+	-- Each list belongs to a user and can be public or private
 	CREATE TABLE IF NOT EXISTS lists (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id INTEGER NOT NULL REFERENCES users(id),
@@ -49,7 +49,7 @@ func Migrate(database *sql.DB) error {
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
-	-- Elementos de cada lista, com posiçom numérica para a ordem
+	-- List items, with a numeric position for ordering
 	CREATE TABLE IF NOT EXISTS list_items (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
@@ -59,8 +59,8 @@ func Migrate(database *sql.DB) error {
 		position INTEGER NOT NULL
 	);
 
-	-- Sessom de Versus (estado do torneio suíço)
-	-- Guarda o progresso de um torneio em curso
+	-- Versus session (Swiss tournament state)
+	-- Stores the progress of an ongoing tournament
 	CREATE TABLE IF NOT EXISTS versus_sessions (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		list_id INTEGER NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
@@ -72,8 +72,8 @@ func Migrate(database *sql.DB) error {
 		finished INTEGER NOT NULL DEFAULT 0
 	);
 
-	-- Resultados individuais de cada enfrentamento
-	-- winner_id é NULL se o duelo ainda nom foi jogado
+	-- Individual match results
+	-- winner_id is NULL if the match has not been played yet
 	CREATE TABLE IF NOT EXISTS versus_matches (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		session_id INTEGER NOT NULL REFERENCES versus_sessions(id) ON DELETE CASCADE,
@@ -84,7 +84,7 @@ func Migrate(database *sql.DB) error {
 		match_order INTEGER NOT NULL
 	);
 
-	-- Classificaçom acumulada de cada elemento no torneio
+	-- Cumulative standings for each item in the tournament
 	CREATE TABLE IF NOT EXISTS versus_standings (
 		session_id INTEGER NOT NULL REFERENCES versus_sessions(id) ON DELETE CASCADE,
 		item_id INTEGER NOT NULL REFERENCES list_items(id),
@@ -94,7 +94,7 @@ func Migrate(database *sql.DB) error {
 		PRIMARY KEY (session_id, item_id)
 	);
 
-	-- Listas colectivas: define o conjunto partilhado de elementos
+	-- Collective lists: defines a shared set of items
 	CREATE TABLE IF NOT EXISTS collective_lists (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		creator_id INTEGER NOT NULL REFERENCES users(id),
@@ -108,7 +108,7 @@ func Migrate(database *sql.DB) error {
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
-	-- Tentativas de login falhadas (rate limiting)
+	-- Failed login attempts (rate limiting)
 	CREATE TABLE IF NOT EXISTS login_attempts (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT NOT NULL,
@@ -117,7 +117,7 @@ func Migrate(database *sql.DB) error {
 	);
 	CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username, attempted_at);
 
-	-- Elementos canónicos de uma lista colectiva
+	-- Canonical items of a collective list
 	CREATE TABLE IF NOT EXISTS collective_items (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		collective_id INTEGER NOT NULL REFERENCES collective_lists(id) ON DELETE CASCADE,
@@ -127,7 +127,7 @@ func Migrate(database *sql.DB) error {
 		position INTEGER NOT NULL
 	);
 
-	-- Participantes de uma lista colectiva
+	-- Participants of a collective list
 	CREATE TABLE IF NOT EXISTS collective_participants (
 		collective_id INTEGER NOT NULL REFERENCES collective_lists(id) ON DELETE CASCADE,
 		user_id INTEGER NOT NULL REFERENCES users(id),
@@ -135,7 +135,7 @@ func Migrate(database *sql.DB) error {
 		PRIMARY KEY (collective_id, user_id)
 	);
 
-	-- Ranking individual de cada participante (uma fila por item por utilizador)
+	-- Individual ranking per participant (one row per item per user)
 	CREATE TABLE IF NOT EXISTS collective_rankings (
 		collective_id INTEGER NOT NULL REFERENCES collective_lists(id) ON DELETE CASCADE,
 		user_id INTEGER NOT NULL REFERENCES users(id),
@@ -145,13 +145,13 @@ func Migrate(database *sql.DB) error {
 	);
 	`
 
-	// Executar o schema
+	// Execute the schema
 	if _, err := database.Exec(schema); err != nil {
-		return fmt.Errorf("erro ao criar tabelas: %w", err)
+		return fmt.Errorf("failed to create tables: %w", err)
 	}
 
-	// Migraçons incrementais: engadir colunas novas se nom existem
-	// (SQLite nom suporta IF NOT EXISTS em ALTER TABLE, por isso ignoramos o erro)
+	// Incremental migrations: add new columns if they don't exist
+	// (SQLite doesn't support IF NOT EXISTS in ALTER TABLE, so we ignore errors)
 	database.Exec("ALTER TABLE users ADD COLUMN default_public INTEGER NOT NULL DEFAULT 1")
 	database.Exec("ALTER TABLE users ADD COLUMN default_versus_mode TEXT NOT NULL DEFAULT 'rapido'")
 	database.Exec("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''")
@@ -168,7 +168,7 @@ func Migrate(database *sql.DB) error {
 	database.Exec("ALTER TABLE collective_items ADD COLUMN link TEXT NOT NULL DEFAULT ''")
 	database.Exec("ALTER TABLE collective_items ADD COLUMN image TEXT NOT NULL DEFAULT ''")
 
-	// Tabela de tentativas de login falhadas (rate limiting)
+	// Failed login attempts table (rate limiting)
 	database.Exec(`CREATE TABLE IF NOT EXISTS login_attempts (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT NOT NULL,
@@ -177,46 +177,46 @@ func Migrate(database *sql.DB) error {
 	)`)
 	database.Exec("CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username, attempted_at)")
 
-	// Inserir o utilizador admin se nom existir
+	// Seed the admin user if it doesn't exist
 	if err := seedAdmin(database); err != nil {
-		return fmt.Errorf("erro ao criar admin: %w", err)
+		return fmt.Errorf("failed to create admin user: %w", err)
 	}
 
-	log.Println("Migraçons executadas com sucesso")
+	log.Println("Migrations completed successfully")
 	return nil
 }
 
-// seedAdmin cria o utilizador administrador por defeito.
-// A palavra-chave é hasheada com bcrypt antes de ser guardada.
+// seedAdmin creates the default administrator account.
+// The password is bcrypt-hashed before being stored.
 func seedAdmin(database *sql.DB) error {
-	// Verificar se o admin já existe
+	// Check if admin already exists
 	var count int
 	err := database.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", "listadmin").Scan(&count)
 	if err != nil {
 		return err
 	}
 
-	// Se já existe, nom fazer nada
+	// Nothing to do if admin already exists
 	if count > 0 {
 		return nil
 	}
 
-	// Gerar o hash bcrypt da palavra-chave
-	// Custo 12 é um bom equilíbrio entre segurança e velocidade
+	// Generate bcrypt hash for the password
+	// Cost 12 is a good balance between security and speed
 	hash, err := bcrypt.GenerateFromPassword([]byte("Kv8$mTnR3xPq#2Lw"), 12)
 	if err != nil {
-		return fmt.Errorf("erro ao gerar hash: %w", err)
+		return fmt.Errorf("failed to generate hash: %w", err)
 	}
 
-	// Inserir o admin na base de dados
+	// Insert admin user into the database
 	_, err = database.Exec(
 		"INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)",
 		"listadmin", string(hash),
 	)
 	if err != nil {
-		return fmt.Errorf("erro ao inserir admin: %w", err)
+		return fmt.Errorf("failed to insert admin user: %w", err)
 	}
 
-	log.Println("Utilizador admin criado: listadmin")
+	log.Println("Admin user created: listadmin")
 	return nil
 }

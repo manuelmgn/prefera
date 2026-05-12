@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// imageExtRegex detecta URLs que terminam em extensom de imagem conhecida
+// imageExtRegex detects URLs ending with a known image extension
 var imageExtRegex = regexp.MustCompile(`(?i)\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)(\?.*)?$`)
 
 type linkSection struct {
@@ -21,16 +21,16 @@ type linkDomainDB struct {
 	sections []linkSection
 }
 
-// globalLinkDB é a instância global carregada ao iniciar
+// globalLinkDB is the global instance loaded at startup
 var globalLinkDB *linkDomainDB
 
-// LoadLinkDomains parseia o ficheiro de domínios e inicializa a BD global.
-// Formato do ficheiro:
+// LoadLinkDomains parses the domains file and initialises the global database.
+// File format:
 //
-//	# comentário
-//	[nome_secçom]
-//	dominio.com/
-//	outro.org/
+//	# comment
+//	[section_name]
+//	domain.com/
+//	other.org/
 func LoadLinkDomains(path string) error {
 	db, err := parseLinkDomains(path)
 	if err != nil {
@@ -68,9 +68,9 @@ func parseLinkDomains(path string) (*linkDomainDB, error) {
 	return &db, scanner.Err()
 }
 
-// ValidateItemLink valida uma URL contra a BD de domínios.
-// NOM aceita extensões de imagem — para imagens usar ValidateImageURL.
-// Retorna o link limpo se válido, ou "" se inválido/vazio.
+// ValidateItemLink validates a URL against the domain database.
+// Does NOT accept image extensions — use ValidateImageURL for images.
+// Returns the cleaned link if valid, or "" if invalid/empty.
 func ValidateItemLink(link string) string {
 	link = strings.TrimSpace(link)
 	if link == "" {
@@ -93,9 +93,9 @@ func ValidateItemLink(link string) string {
 	return ""
 }
 
-// ValidateImageURL valida que um URL aponta a uma imagem.
-// Aceita URLs com extensom de imagem conhecida ou URLs de i.ibb.co (IMGBB).
-// Retorna o URL limpo ou "" se inválido.
+// ValidateImageURL validates that a URL points to an image.
+// Accepts URLs with a known image extension or URLs from i.ibb.co (IMGBB).
+// Returns the cleaned URL or "" if invalid.
 func ValidateImageURL(url string) string {
 	url = strings.TrimSpace(url)
 	if url == "" {
@@ -105,19 +105,19 @@ func ValidateImageURL(url string) string {
 		return ""
 	}
 	lower := strings.ToLower(url)
-	// Aceitar URLs do IMGBB (serviço de upload integrado)
+	// Accept IMGBB URLs (integrated upload service)
 	if strings.Contains(lower, "i.ibb.co/") || strings.Contains(lower, "ibb.co/") {
 		return url
 	}
-	// Aceitar URLs com extensom de imagem conhecida
+	// Accept URLs with a known image extension
 	if imageExtRegex.MatchString(url) {
 		return url
 	}
 	return ""
 }
 
-// LinkType retorna o nome da secçom para um link (ex: "wiki", "videos", "social").
-// Retorna "" se nom há correspondência.
+// LinkType returns the section name for a link (e.g. "wiki", "videos", "social").
+// Returns "" if no section matches.
 func LinkType(link string) string {
 	if link == "" || globalLinkDB == nil {
 		return ""
@@ -133,14 +133,14 @@ func LinkType(link string) string {
 	return ""
 }
 
-// IsImageURL retorna true se o URL tem uma extensom de imagem conhecida.
-// Usado nos templates para decidir se mostrar como fundo no modo versus.
+// IsImageURL returns true if the URL has a known image extension.
+// Used in templates to decide whether to display as a background in Versus mode.
 func IsImageURL(link string) bool {
 	return imageExtRegex.MatchString(link)
 }
 
-// AllowedPatternsJS retorna um array JSON com todos os padrões permitidos,
-// marcado como seguro para injecçom directa em JavaScript.
+// AllowedPatternsJS returns a JSON array of all allowed patterns,
+// marked as safe for direct injection into JavaScript.
 func AllowedPatternsJS() template.JS {
 	if globalLinkDB == nil {
 		return template.JS("[]")

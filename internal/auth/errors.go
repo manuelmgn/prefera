@@ -2,8 +2,8 @@ package auth
 
 import "errors"
 
-// Erros de autenticaçom
+// Authentication errors
 var (
-	// ErrWrongPassword indica que a palavra-chave actual nom é correcta
-	ErrWrongPassword = errors.New("palavra-chave incorrecta")
+	// ErrWrongPassword indicates that the provided current password is incorrect.
+	ErrWrongPassword = errors.New("wrong password")
 )

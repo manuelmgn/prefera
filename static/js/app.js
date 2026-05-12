@@ -1,37 +1,37 @@
-// app.js — JavaScript mínimo para a aplicaçom Listas
-// Usa SortableJS para drag & drop e fetch para gardar a orde
+// app.js — minimal JavaScript for the Listas application
+// Uses SortableJS for drag-and-drop and fetch to persist the order
 
-// Inicializar SortableJS quando a página carregar
+// Initialise SortableJS when the page loads
 document.addEventListener('DOMContentLoaded', function() {
     initSortable();
 });
 
-// Também reinicializar depois de uma troca HTMX (para páginas dinâmicas)
+// Also reinitialise after an HTMX swap (for dynamic pages)
 document.addEventListener('htmx:afterSwap', function() {
     initSortable();
 });
 
-// initSortable configura o drag & drop na lista de elementos
+// initSortable sets up drag-and-drop on the item list
 function initSortable() {
     var list = document.getElementById('sortable-items');
     if (!list) return;
 
-    // Verificar se já foi inicializado (evitar duplicados)
+    // Prevent duplicate initialisation
     if (list.sortableInstance) return;
 
     list.sortableInstance = new Sortable(list, {
-        animation: 200,           // Animaçom suave de 200ms
-        handle: '.drag-handle',   // Só arrastar pelo handle (⠿)
+        animation: 200,           // 200ms smooth animation
+        handle: '.drag-handle',   // drag only via the handle (⠿)
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
-        // Quando o utilizador termina de arrastar, actualizar os números
+        // Update rank numbers after each drag
         onEnd: function() {
             updateRankNumbers();
         }
     });
 }
 
-// rankBadgeClass retorna as classes CSS para um badge de rank
+// rankBadgeClass returns the CSS classes for a rank badge
 function rankBadgeClass(pos, size) {
     var base = 'rank-number rounded-full flex items-center justify-center font-bold shrink-0 ';
     base += (size === 'sm') ? 'w-6 h-6 text-[10px] ' : 'w-7 h-7 text-[11px] ';
@@ -41,7 +41,7 @@ function rankBadgeClass(pos, size) {
     return base + 'bg-gray-100/80 dark:bg-white/10 text-gray-400';
 }
 
-// updateRankNumbers actualiza os números de posiçom depois de reordenar
+// updateRankNumbers refreshes the position numbers after reordering
 function updateRankNumbers() {
     var items = document.querySelectorAll('#sortable-items .sortable-item');
     items.forEach(function(item, index) {
@@ -53,23 +53,23 @@ function updateRankNumbers() {
     });
 }
 
-// saveOrder envia a nova orde dos elementos ao servidor
+// saveOrder sends the new item order to the server
 function saveOrder(listID) {
     var items = document.querySelectorAll('#sortable-items .sortable-item');
-    // Recolher os IDs na ordem actual
+    // Collect IDs in current order
     var ids = [];
     items.forEach(function(item) {
         ids.push(parseInt(item.getAttribute('data-id')));
     });
 
-    // Enviar ao servidor via fetch (POST com JSON)
+    // POST to server as JSON
     fetch('/lists/' + listID + '/reorder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ids)
     }).then(function(response) {
         if (response.ok) {
-            // Mostrar feedback visual
+            // Show visual feedback
             var btn = document.querySelector('.btn-save-order');
             if (btn) {
                 var originalText = btn.textContent;

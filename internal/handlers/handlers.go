@@ -1,4 +1,4 @@
-// Package handlers contém os controladores HTTP da aplicaçom.
+// Package handlers contains the HTTP controllers for the application.
 package handlers
 
 import (
@@ -15,14 +15,14 @@ import (
 	"proj_listas/internal/auth"
 )
 
-// Handler contém as dependências partilhadas por todos os controladores
+// Handler holds the shared dependencies for all HTTP controllers.
 type Handler struct {
 	db   *sql.DB
 	tmpl *template.Template
 	auth *auth.Manager
 }
 
-// New cria um novo Handler com todas as dependências
+// New creates a new Handler with all required dependencies.
 func New(db *sql.DB, tmpl *template.Template, authMgr *auth.Manager) *Handler {
 	return &Handler{
 		db:   db,
@@ -31,54 +31,54 @@ func New(db *sql.DB, tmpl *template.Template, authMgr *auth.Manager) *Handler {
 	}
 }
 
-// renderPage renderiza uma página completa: primeiro renderiza o conteúdo
-// num buffer, depois insere-o no layout.
-// Isto evita problemas com templates aninhados em Go.
+// renderPage renders a full page: first renders the content into a buffer,
+// then injects it into the layout.
+// This avoids issues with nested templates in Go.
 func (h *Handler) renderPage(w http.ResponseWriter, contentTemplate string, data map[string]interface{}) {
-	// 1. Renderizar o conteúdo específico da página num buffer
+	// 1. Render the page-specific content into a buffer
 	var buf bytes.Buffer
 	if err := h.tmpl.ExecuteTemplate(&buf, contentTemplate, data); err != nil {
-		log.Printf("Erro ao renderizar conteúdo '%s': %v", contentTemplate, err)
+		log.Printf("Failed to render content '%s': %v", contentTemplate, err)
 		http.Error(w, "Erro interno", http.StatusInternalServerError)
 		return
 	}
 
-	// 2. Inserir o HTML renderizado nos dados para o layout
-	// template.HTML evita que Go escape o HTML do conteúdo
+	// 2. Inject the rendered HTML into the layout data
+	// template.HTML prevents Go from escaping the content HTML
 	data["Content"] = template.HTML(buf.String())
 
-	// 3. Renderizar o layout completo com o conteúdo inserido
+	// 3. Render the full layout with the injected content
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.tmpl.ExecuteTemplate(w, "layout", data); err != nil {
-		log.Printf("Erro ao renderizar layout: %v", err)
+		log.Printf("Failed to render layout: %v", err)
 		http.Error(w, "Erro interno", http.StatusInternalServerError)
 	}
 }
 
-// renderPartial renderiza apenas um partial (sem layout), para respostas HTMX
+// renderPartial renders only a partial template (no layout), for HTMX responses.
 func (h *Handler) renderPartial(w http.ResponseWriter, name string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.tmpl.ExecuteTemplate(w, name, data); err != nil {
-		log.Printf("Erro ao renderizar partial '%s': %v", name, err)
+		log.Printf("Failed to render partial '%s': %v", name, err)
 		http.Error(w, "Erro interno", http.StatusInternalServerError)
 	}
 }
 
-// renderFullPage renderiza uma página inteira SEM layout (ex: versus)
+// renderFullPage renders a full page WITHOUT the layout (e.g. versus screen).
 func (h *Handler) renderFullPage(w http.ResponseWriter, name string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.tmpl.ExecuteTemplate(w, name, data); err != nil {
-		log.Printf("Erro ao renderizar página '%s': %v", name, err)
+		log.Printf("Failed to render page '%s': %v", name, err)
 		http.Error(w, "Erro interno", http.StatusInternalServerError)
 	}
 }
 
-// LoginPage mostra a página de login
+// LoginPage renders the login page.
 func (h *Handler) LoginPage(w http.ResponseWriter, r *http.Request) {
 	h.renderFullPage(w, "login", map[string]interface{}{})
 }
 
-// LoginSubmit processa o formulário de login com rate limiting
+// LoginSubmit processes the login form with rate limiting.
 func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	username := SanitizeInput(r.FormValue("username"), MaxUsernameLen)
 	password := r.FormValue("password")
@@ -88,7 +88,7 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		password = password[:MaxPasswordLen]
 	}
 
-	// Verificar se está bloqueado por demasiadas tentativas
+	// Check if user is blocked due to too many failed attempts
 	if blocked, _ := h.auth.IsLoginBlocked(username, clientIP); blocked {
 		h.renderFullPage(w, "login", map[string]interface{}{
 			"Error":   "Demasiadas tentativas falhadas. Tenta de novo em 60 minutos.",
@@ -99,9 +99,9 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 
 	user := h.auth.Authenticate(username, password)
 	if user == nil {
-		// Registar tentativa falhada
+		// Record failed attempt
 		h.auth.RecordFailedLogin(username, clientIP)
-		// Verificar se acabou de ser bloqueado
+		// Check if now blocked
 		blocked, attempts := h.auth.IsLoginBlocked(username, clientIP)
 		if blocked {
 			h.renderFullPage(w, "login", map[string]interface{}{
@@ -129,7 +129,7 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Login com sucesso: limpar tentativas anteriores
+	// Successful login: clear previous failed attempts
 	h.auth.ClearLoginAttempts(username, clientIP)
 
 	if err := h.auth.CreateSession(w, user.ID); err != nil {
@@ -140,29 +140,29 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// getClientIP obtém o endereço IP do cliente, considerando proxies
+// getClientIP returns the client's IP address, accounting for proxies.
 func getClientIP(r *http.Request) string {
-	// Verificar X-Forwarded-For (para proxies/Docker)
+	// Check X-Forwarded-For header (set by proxies/Docker)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// O primeiro IP na lista é o cliente original
+		// The first IP in the list is the original client
 		parts := strings.SplitN(xff, ",", 2)
 		return strings.TrimSpace(parts[0])
 	}
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
 	}
-	// Fallback para o endereço remoto (sem a porta)
+	// Fallback to remote address (strip the port)
 	parts := strings.SplitN(r.RemoteAddr, ":", 2)
 	return parts[0]
 }
 
-// Logout encerra a sessom do utilizador
+// Logout terminates the user's session.
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	h.auth.DestroySession(w, r)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-// SettingsPage mostra a página de configuraçom do utilizador
+// SettingsPage renders the user settings page.
 func (h *Handler) SettingsPage(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	h.renderPage(w, "settings", map[string]interface{}{
@@ -172,7 +172,7 @@ func (h *Handler) SettingsPage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// SettingsSubmit processa as preferências do utilizador
+// SettingsSubmit processes the user preferences form.
 func (h *Handler) SettingsSubmit(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 
@@ -202,7 +202,7 @@ func (h *Handler) SettingsSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/settings?success=1", http.StatusSeeOther)
 }
 
-// PasswordChangePage mostra o formulário para mudar a palavra-chave
+// PasswordChangePage renders the password change form.
 func (h *Handler) PasswordChangePage(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	h.renderPage(w, "password_change", map[string]interface{}{
@@ -211,7 +211,7 @@ func (h *Handler) PasswordChangePage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// PasswordChangeSubmit processa a mudança de palavra-chave
+// PasswordChangeSubmit processes the password change form.
 func (h *Handler) PasswordChangeSubmit(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	current := r.FormValue("current_password")
@@ -261,7 +261,7 @@ func (h *Handler) PasswordChangeSubmit(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/settings?success=pw", http.StatusSeeOther)
 }
 
-// AdminPanel mostra o painel de administraçom
+// AdminPanel renders the administration panel.
 func (h *Handler) AdminPanel(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -269,7 +269,7 @@ func (h *Handler) AdminPanel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Obter estatísticas de todos os utilizadores (excepto admin)
+	// Fetch statistics for all non-admin users
 	rows, err := h.db.Query(`
 		SELECT u.id, u.username, u.display_name, u.is_admin, u.last_login_at, u.created_at,
 		       COALESCE(SUM(CASE WHEN l.is_public = 1 THEN 1 ELSE 0 END), 0) as public_lists,
@@ -309,7 +309,7 @@ func (h *Handler) AdminPanel(w http.ResponseWriter, r *http.Request) {
 		stats = append(stats, s)
 	}
 
-	// Estatísticas de listas colectivas por utilizador
+	// Collective list statistics per user
 	collectiveRows, err := h.db.Query(`
 		SELECT u.id, u.username,
 		       COALESCE(SUM(CASE WHEN cl.creator_id = u.id THEN 1 ELSE 0 END), 0) as created,
@@ -353,7 +353,7 @@ func (h *Handler) AdminPanel(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// AdminCreateUser cria um novo utilizador
+// AdminCreateUser creates a new user account.
 func (h *Handler) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -393,7 +393,7 @@ func (h *Handler) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin?success=Utilizador+criado", http.StatusSeeOther)
 }
 
-// AdminDeleteUser apaga um utilizador e todas as suas listas
+// AdminDeleteUser deletes a user and all their lists.
 func (h *Handler) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	if !user.IsAdmin {
@@ -407,13 +407,13 @@ func (h *Handler) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Nom permitir apagar o próprio admin
+	// Prevent deleting the admin's own account
 	if targetID == user.ID {
 		http.Redirect(w, r, "/admin?error=Nom+podes+apagar+a+tua+própria+conta", http.StatusSeeOther)
 		return
 	}
 
-	// Verificar que o utilizador existe e nom é admin
+	// Verify the target exists and is not an admin
 	var isAdmin int
 	err = h.db.QueryRow("SELECT is_admin FROM users WHERE id = ?", targetID).Scan(&isAdmin)
 	if err != nil {
@@ -425,7 +425,7 @@ func (h *Handler) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Apagar sessons, listas (e itens via CASCADE) e o utilizador
+	// Delete sessions, lists (items via CASCADE), and the user
 	tx, err := h.db.Begin()
 	if err != nil {
 		http.Redirect(w, r, "/admin?error=Erro+interno", http.StatusSeeOther)
@@ -445,7 +445,7 @@ func (h *Handler) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin?success=Utilizador+apagado", http.StatusSeeOther)
 }
 
-// AdminChangePassword muda a palavra-chave de um utilizador
+// AdminChangePassword changes the password of any user.
 func (h *Handler) AdminChangePassword(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	if !user.IsAdmin {

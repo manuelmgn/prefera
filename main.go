@@ -17,36 +17,36 @@ import (
 )
 
 func main() {
-	// Obter o caminho da base de dados desde variável de ambiente
-	// Se nom existir, usa o caminho por defeito
+	// Get the database path from environment variable
+	// Fall back to default path if not set
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
 		dbPath = "./data/listas.db"
 	}
 
-	// Iniciar a conexom com a base de dados SQLite
+	// Open SQLite database connection
 	database, err := db.Open(dbPath)
 	if err != nil {
-		log.Fatalf("Erro ao abrir a base de dados: %v", err)
+		log.Fatalf("Failed to open database: %v", err)
 	}
 	defer database.Close()
 
-	// Executar as migraçons (criar tabelas se nom existem)
+	// Run migrations (create tables if they don't exist)
 	if err := db.Migrate(database); err != nil {
-		log.Fatalf("Erro nas migraçons: %v", err)
+		log.Fatalf("Migrations failed: %v", err)
 	}
 
-	// Carregar a base de dados de domínios permitidos para links
+	// Load the allowed link domains database
 	domsPath := os.Getenv("DOMAINS_PATH")
 	if domsPath == "" {
 		domsPath = "./dominios.txt"
 	}
 	if err := handlers.LoadLinkDomains(domsPath); err != nil {
-		log.Fatalf("Erro ao carregar dominios.txt: %v", err)
+		log.Fatalf("Failed to load domains.txt: %v", err)
 	}
 
-	// Carregar os templates HTML desde o disco
-	// (em desenvolvimento lê directamente; em Docker o caminho é /app/templates)
+	// Load HTML templates from disk
+	// (in development reads directly; in Docker the path is /app/templates)
 	tmplPath := os.Getenv("TMPL_PATH")
 	if tmplPath == "" {
 		tmplPath = "templates"
@@ -60,17 +60,17 @@ func main() {
 	}
 	tmpl, err := template.New("").Funcs(funcMap).ParseGlob(tmplPath + "/*.html")
 	if err != nil {
-		log.Fatalf("Erro ao carregar templates: %v", err)
+		log.Fatalf("Failed to load templates: %v", err)
 	}
 	tmpl, err = tmpl.ParseGlob(tmplPath + "/partials/*.html")
 	if err != nil {
-		log.Fatalf("Erro ao carregar partials: %v", err)
+		log.Fatalf("Failed to load partials: %v", err)
 	}
 
-	// Criar o gestor de autenticaçom
+	// Create the authentication manager
 	authManager := auth.NewManager(database)
 
-	// Limpar sessons expiradas periodicamente (cada 6 horas)
+	// Clean up expired sessions periodically (every 6 hours)
 	go func() {
 		for {
 			time.Sleep(6 * time.Hour)
@@ -78,58 +78,58 @@ func main() {
 		}
 	}()
 
-	// Criar o gestor de rotas (handlers)
+	// Create the route handler
 	h := handlers.New(database, tmpl, authManager)
 
-	// Configurar o router chi
+	// Set up the chi router
 	r := chi.NewRouter()
 
-	// Middleware global: logging, recuperaçom de panics e segurança
+	// Global middleware: logging, panic recovery, and security headers
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(handlers.SecurityHeaders)
 
-	// Servir ficheiros estáticos desde o disco
+	// Serve static files from disk
 	staticPath := os.Getenv("STATIC_PATH")
 	if staticPath == "" {
 		staticPath = "static"
 	}
 	staticFS, err := fs.Sub(os.DirFS(staticPath), ".")
 	if err != nil {
-		log.Fatalf("Erro ao configurar ficheiros estáticos: %v", err)
+		log.Fatalf("Failed to configure static files: %v", err)
 	}
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
-	// Rotas públicas (sem autenticaçom)
+	// Public routes (no authentication required)
 	r.Get("/login", h.LoginPage)
 	r.Post("/login", h.LoginSubmit)
 
-	// Redirecionar raiz sem autenticaçom para login
-	// (o middleware dentro do grupo protegido trata disto,
-	//  mas se alguém acede a / sem cookie, vai ao dashboard que redireciona)
+	// Redirect unauthenticated root access to login
+	// (the middleware inside the protected group handles this,
+	//  but if someone hits / without a cookie they go to the dashboard which redirects)
 
-	// Rotas protegidas (requerem autenticaçom)
+	// Protected routes (require authentication)
 	r.Group(func(r chi.Router) {
 		r.Use(authManager.RequireAuth)
 
-		// Página principal
+		// Main page
 		r.Get("/", h.Dashboard)
 		r.Post("/logout", h.Logout)
 
-		// As minhas listas
+		// My lists
 		r.Get("/my-lists", h.MyListsPage)
 		r.Get("/my-lists/all", h.MyListsAllPage)
 		r.Get("/my-lists/collectives", h.MyListsCollectivesPage)
 
-		// Configuraçom do utilizador
+		// User settings
 		r.Get("/settings", h.SettingsPage)
 		r.Post("/settings", h.SettingsSubmit)
 
-		// Mudar palavra-chave
+		// Change password
 		r.Get("/password", h.PasswordChangePage)
 		r.Post("/password", h.PasswordChangeSubmit)
 
-		// Gestom de listas
+		// List management
 		r.Get("/lists/new", h.ListCreate)
 		r.Post("/lists", h.ListSave)
 		r.Get("/lists/{id}", h.ListView)
@@ -140,7 +140,7 @@ func main() {
 		r.Post("/lists/{id}/clone", h.ListClone)
 		r.Post("/lists/{id}/items/{itemId}/details", h.ListUpdateItemDetails)
 
-		// Listas colectivas
+		// Collective lists
 		r.Get("/collective/new", h.CollectiveCreate)
 		r.Post("/collective", h.CollectiveSave)
 		r.Get("/collective/join/{code}", h.CollectiveJoinDirect)
@@ -154,16 +154,16 @@ func main() {
 		r.Post("/lists/{id}/convert-to-collective", h.CollectiveConvertFromList)
 		r.Post("/collective/{id}/items/{itemId}/details", h.CollectiveUpdateItemDetails)
 
-		// Upload de imagens (proxy IMGBB)
+		// Image upload (IMGBB proxy)
 		r.Post("/api/upload-image", h.UploadImage)
 
-		// Painel de administraçom
+		// Admin panel
 		r.Get("/admin", h.AdminPanel)
 		r.Post("/admin/users", h.AdminCreateUser)
 		r.Post("/admin/users/{id}/delete", h.AdminDeleteUser)
 		r.Post("/admin/users/{id}/password", h.AdminChangePassword)
 
-		// Modo Versus
+		// Versus mode
 		r.Post("/lists/{id}/versus", h.VersusStart)
 		r.Get("/versus/{sid}", h.VersusPage)
 		r.Get("/versus/{sid}/next", h.VersusNext)
@@ -173,15 +173,15 @@ func main() {
 		r.Post("/versus/{sid}/save", h.VersusSave)
 	})
 
-	// Iniciar o servidor na porta 7010
+	// Start server on port 7010
 	port := ":7010"
-	log.Printf("Servidor iniciado em http://localhost%s", port)
+	log.Printf("Server started at http://localhost%s", port)
 	if err := http.ListenAndServe(port, r); err != nil {
-		log.Fatalf("Erro ao iniciar o servidor: %v", err)
+		log.Fatalf("Failed to start server: %v", err)
 	}
 }
 
-// formatDateStr converte uma string de data SQLite em formato DD/MM/YYYY.
+// formatDateStr converts a SQLite date string to DD/MM/YYYY format.
 func formatDateStr(s string) string {
 	layouts := []string{
 		"2006-01-02T15:04:05Z07:00",

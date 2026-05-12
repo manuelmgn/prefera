@@ -12,7 +12,7 @@ import (
 	"proj_listas/internal/models"
 )
 
-// ListCreate mostra o formulário para criar uma nova lista
+// ListCreate renders the form for creating a new list.
 func (h *Handler) ListCreate(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	h.renderPage(w, "list_create", map[string]interface{}{
@@ -22,7 +22,7 @@ func (h *Handler) ListCreate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ListSave processa a criaçom de uma nova lista
+// ListSave processes the new list creation form.
 func (h *Handler) ListSave(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 
@@ -35,7 +35,7 @@ func (h *Handler) ListSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Os elementos vêm como JSON array de objectos [{name, description, link}, ...]
+	// Items arrive as a JSON array of objects: [{name, description, link}, ...]
 	var rawItems []models.ListItemInput
 	if err := json.Unmarshal([]byte(itemsRaw), &rawItems); err != nil {
 		http.Error(w, "Formato de elementos inválido", http.StatusBadRequest)
@@ -89,7 +89,7 @@ func (h *Handler) ListSave(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/lists/"+strconv.Itoa(listID)+"/edit", http.StatusSeeOther)
 }
 
-// ListView mostra uma lista (pública ou própria)
+// ListView renders a list (public or owned by the current user).
 func (h *Handler) ListView(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -118,7 +118,7 @@ func (h *Handler) ListView(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ListEdit mostra o formulário de ediçom (só o dono)
+// ListEdit renders the edit form (owner only).
 func (h *Handler) ListEdit(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -138,8 +138,7 @@ func (h *Handler) ListEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// CanEditItems: pode editar descriçom/link/imagem se ninguém votou ainda
-	// (sem sessons de versus completadas para esta lista)
+	// CanEditItems: can edit description/link/image if no versus session has been completed
 	var completedSessions int
 	h.db.QueryRow(
 		"SELECT COUNT(*) FROM versus_sessions WHERE list_id = ? AND finished = 1",
@@ -147,7 +146,7 @@ func (h *Handler) ListEdit(w http.ResponseWriter, r *http.Request) {
 	).Scan(&completedSessions)
 	canEditItems := completedSessions == 0
 
-	// CanManageItems: pode engadir/remover/renomear se ninguém votou E lista < 5 min
+	// CanManageItems: can add/remove/rename items if no votes exist AND list is under 5 minutes old
 	canManageItems := canEditItems && time.Since(list.CreatedAt) < 5*time.Minute
 
 	h.renderPage(w, "list_edit", map[string]interface{}{
@@ -160,7 +159,7 @@ func (h *Handler) ListEdit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ListUpdate actualiza os metadados de uma lista
+// ListUpdate updates a list's metadata.
 func (h *Handler) ListUpdate(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -184,7 +183,7 @@ func (h *Handler) ListUpdate(w http.ResponseWriter, r *http.Request) {
 	description := SanitizeInput(r.FormValue("description"), MaxDescriptionLen)
 	isPublic := r.FormValue("is_public") != ""
 
-	// Se o nome está vazio, manter os valores existentes (caso do versus_result)
+	// If name is empty, keep the existing values (e.g. after versus_result save)
 	if name == "" {
 		name = list.Name
 		description = list.Description
@@ -198,7 +197,7 @@ func (h *Handler) ListUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/lists/"+strconv.Itoa(listID), http.StatusSeeOther)
 }
 
-// ListDelete apaga uma lista
+// ListDelete deletes a list.
 func (h *Handler) ListDelete(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -226,7 +225,7 @@ func (h *Handler) ListDelete(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// ListReorder actualiza a ordem dos elementos (JSON array de IDs)
+// ListReorder updates the item order from a JSON array of IDs.
 func (h *Handler) ListReorder(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -260,7 +259,7 @@ func (h *Handler) ListReorder(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// ListClone cria uma cópia de uma lista pública
+// ListClone creates a copy of a public list for the current user.
 func (h *Handler) ListClone(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))
@@ -289,7 +288,7 @@ func (h *Handler) ListClone(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/lists/"+strconv.Itoa(newListID)+"/edit", http.StatusSeeOther)
 }
 
-// ListUpdateItemDetails actualiza a descriçom e link de um elemento
+// ListUpdateItemDetails updates the description, link, and image of an item.
 func (h *Handler) ListUpdateItemDetails(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	listID, err := strconv.Atoi(chi.URLParam(r, "id"))

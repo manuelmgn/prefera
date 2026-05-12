@@ -8,11 +8,11 @@ import (
 	"sort"
 )
 
-// VersusSession representa uma sessom de torneio suíço em curso
+// VersusSession represents an ongoing Swiss-tournament session.
 type VersusSession struct {
 	ID                   int
 	ListID               int
-	Mode                 string // "rapido" ou "detalhado"
+	Mode                 string // "rapido" or "detalhado"
 	TotalComparisons     int
 	CompletedComparisons int
 	IsRoundRobin         bool
@@ -20,16 +20,16 @@ type VersusSession struct {
 	Finished             bool
 }
 
-// VersusMatch representa um enfrentamento individual entre dois elementos
+// VersusMatch represents an individual head-to-head match between two items.
 type VersusMatch struct {
 	ID         int
 	SessionID  int
 	Round      int
 	ItemAID    int
 	ItemBID    int
-	WinnerID   *int // nil se ainda nom foi jogado
+	WinnerID   *int // nil if the match has not been played yet
 	MatchOrder int
-	// Campos auxiliares para a UI
+	// Auxiliary fields for the UI
 	ItemAName        string
 	ItemBName        string
 	ItemADescription string
@@ -40,24 +40,24 @@ type VersusMatch struct {
 	ItemBImage       string
 }
 
-// VersusStanding representa a classificaçom de um elemento no torneio
+// VersusStanding represents a single item's standing in the tournament.
 type VersusStanding struct {
 	SessionID int
 	ItemID    int
 	Wins      int
 	Losses    int
 	Buchholz  float64
-	// Campo auxiliar
+	// Auxiliary field
 	ItemName string
 }
 
-// CalcTotalComparisons calcula o número total de comparaçons
-// baseado no modo e no número de elementos.
-// Fórmulas: Rápido = 1.5n + 5, Detalhado = 2n + 10
-// Se n <= 5, usa round-robin (todos contra todos)
+// CalcTotalComparisons calculates the total number of comparisons
+// based on the mode and number of items.
+// Formulas: Quick = 1.5n + 5, Detailed = 2n + 10
+// If n <= 5, uses round-robin (every pair plays once).
 func CalcTotalComparisons(n int, mode string) (total int, isRoundRobin bool) {
 	if n <= 5 {
-		// Round-robin: cada par joga uma vez = n*(n-1)/2
+		// Round-robin: each pair plays once = n*(n-1)/2
 		return n * (n - 1) / 2, true
 	}
 
@@ -71,10 +71,10 @@ func CalcTotalComparisons(n int, mode string) (total int, isRoundRobin bool) {
 	return total, false
 }
 
-// StartVersusSession cria uma nova sessom de Versus para uma lista.
-// Gera os emparelamentos da primeira ronda e inicializa as classificaçons.
+// StartVersusSession creates a new Versus session for a list.
+// Generates the first-round pairings and initialises standings.
 func StartVersusSession(db *sql.DB, listID int, mode string) (int, error) {
-	// Obter os elementos da lista
+	// Fetch list items
 	items, err := GetListItems(db, listID)
 	if err != nil {
 		return 0, err
@@ -89,7 +89,7 @@ func StartVersusSession(db *sql.DB, listID int, mode string) (int, error) {
 	}
 	defer tx.Rollback()
 
-	// Criar a sessom
+	// Create the session
 	result, err := tx.Exec(`
 		INSERT INTO versus_sessions (list_id, mode, total_comparisons, is_round_robin)
 		VALUES (?, ?, ?, ?)
@@ -101,7 +101,7 @@ func StartVersusSession(db *sql.DB, listID int, mode string) (int, error) {
 	sessionID64, _ := result.LastInsertId()
 	sessionID := int(sessionID64)
 
-	// Inicializar as classificaçons (todos começam com 0 vitórias)
+	// Initialise standings (everyone starts with 0 wins)
 	for _, item := range items {
 		_, err = tx.Exec(`
 			INSERT INTO versus_standings (session_id, item_id, wins, losses, buchholz)
@@ -112,12 +112,12 @@ func StartVersusSession(db *sql.DB, listID int, mode string) (int, error) {
 		}
 	}
 
-	// Gerar os emparelamentos
+	// Generate pairings
 	if isRR {
-		// Round-robin: gerar TODOS os pares possíveis
+		// Round-robin: generate ALL possible pairs upfront
 		err = generateRoundRobinMatches(tx, sessionID, items)
 	} else {
-		// Sistema suíço: gerar só a primeira ronda (aleatória)
+		// Swiss system: generate only the first round (random pairings)
 		err = generateFirstRound(tx, sessionID, items)
 	}
 	if err != nil {
@@ -127,8 +127,8 @@ func StartVersusSession(db *sql.DB, listID int, mode string) (int, error) {
 	return sessionID, tx.Commit()
 }
 
-// generateRoundRobinMatches gera todos os pares possíveis para round-robin.
-// Usado quando há 5 ou menos elementos.
+// generateRoundRobinMatches generates all possible pairs for round-robin mode.
+// Used when there are 5 or fewer items.
 func generateRoundRobinMatches(tx *sql.Tx, sessionID int, items []ListItem) error {
 	order := 1
 	for i := 0; i < len(items); i++ {
@@ -146,20 +146,19 @@ func generateRoundRobinMatches(tx *sql.Tx, sessionID int, items []ListItem) erro
 	return nil
 }
 
-// generateFirstRound gera emparelamentos aleatórios para a primeira ronda.
-// Baralha os elementos e emparelha-os de dois em dois.
+// generateFirstRound generates random pairings for the first round.
+// Shuffles items and pairs them two-by-two.
 func generateFirstRound(tx *sql.Tx, sessionID int, items []ListItem) error {
-	// Baralhar os elementos aleatoriamente
+	// Shuffle items randomly
 	shuffled := make([]ListItem, len(items))
 	copy(shuffled, items)
 	rand.Shuffle(len(shuffled), func(i, j int) {
 		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
 	})
 
-	// Obter o último match_order existente
 	order := 1
 
-	// Emparelhar de dois em dois
+	// Pair items two by two
 	for i := 0; i+1 < len(shuffled); i += 2 {
 		_, err := tx.Exec(`
 			INSERT INTO versus_matches (session_id, round, item_a_id, item_b_id, match_order)
@@ -173,7 +172,7 @@ func generateFirstRound(tx *sql.Tx, sessionID int, items []ListItem) error {
 	return nil
 }
 
-// GetVersusSession obtém uma sessom de Versus pelo seu ID
+// GetVersusSession retrieves a Versus session by its ID.
 func GetVersusSession(db *sql.DB, sessionID int) (*VersusSession, error) {
 	s := &VersusSession{}
 	err := db.QueryRow(`
@@ -190,9 +189,9 @@ func GetVersusSession(db *sql.DB, sessionID int) (*VersusSession, error) {
 	return s, nil
 }
 
-// GetNextDuel obtém o próximo enfrentamento por jogar.
-// Retorna nil se todos os duelos da ronda actual estám jogados
-// (nesse caso, há que gerar a ronda seguinte ou finalizar).
+// GetNextDuel returns the next unplayed match in the current round.
+// Returns nil if all matches in the current round have been played
+// (in that case, a new round should be generated or the session finalised).
 func GetNextDuel(db *sql.DB, sessionID int) (*VersusMatch, error) {
 	m := &VersusMatch{}
 	err := db.QueryRow(`
@@ -211,7 +210,7 @@ func GetNextDuel(db *sql.DB, sessionID int) (*VersusMatch, error) {
 		&m.ItemADescription, &m.ItemALink, &m.ItemAImage, &m.ItemBDescription, &m.ItemBLink, &m.ItemBImage,
 	)
 	if err == sql.ErrNoRows {
-		return nil, nil // Nom há mais duelos pendentes
+		return nil, nil // No pending matches
 	}
 	if err != nil {
 		return nil, err
@@ -219,7 +218,7 @@ func GetNextDuel(db *sql.DB, sessionID int) (*VersusMatch, error) {
 	return m, nil
 }
 
-// RecordResult regista o resultado de um enfrentamento e actualiza as classificaçons.
+// RecordResult records the outcome of a match and updates standings.
 func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -227,7 +226,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 	}
 	defer tx.Rollback()
 
-	// Obter os dados do enfrentamento
+	// Fetch match data
 	var itemAID, itemBID int
 	err = tx.QueryRow(
 		"SELECT item_a_id, item_b_id FROM versus_matches WHERE id = ? AND session_id = ?",
@@ -237,13 +236,13 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 		return err
 	}
 
-	// Determinar o perdedor
+	// Determine the loser
 	loserID := itemBID
 	if winnerID == itemBID {
 		loserID = itemAID
 	}
 
-	// Registar o vencedor
+	// Record the winner
 	_, err = tx.Exec(
 		"UPDATE versus_matches SET winner_id = ? WHERE id = ?",
 		winnerID, matchID,
@@ -252,7 +251,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 		return err
 	}
 
-	// Actualizar vitórias do vencedor
+	// Increment winner's win count
 	_, err = tx.Exec(
 		"UPDATE versus_standings SET wins = wins + 1 WHERE session_id = ? AND item_id = ?",
 		sessionID, winnerID,
@@ -261,7 +260,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 		return err
 	}
 
-	// Actualizar derrotas do perdedor
+	// Increment loser's loss count
 	_, err = tx.Exec(
 		"UPDATE versus_standings SET losses = losses + 1 WHERE session_id = ? AND item_id = ?",
 		sessionID, loserID,
@@ -270,7 +269,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 		return err
 	}
 
-	// Incrementar comparaçons completadas
+	// Increment completed comparisons counter
 	_, err = tx.Exec(
 		"UPDATE versus_sessions SET completed_comparisons = completed_comparisons + 1 WHERE id = ?",
 		sessionID,
@@ -282,22 +281,22 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 	return tx.Commit()
 }
 
-// GenerateNextRoundIfNeeded verifica se é preciso gerar uma nova ronda.
-// Retorna true se o torneio terminou (atingiu o total de comparaçons).
+// GenerateNextRoundIfNeeded checks whether a new round needs to be generated.
+// Returns true if the tournament has ended (total comparisons reached).
 func GenerateNextRoundIfNeeded(db *sql.DB, sessionID int) (bool, error) {
 	session, err := GetVersusSession(db, sessionID)
 	if err != nil {
 		return false, err
 	}
 
-	// Se é round-robin ou já terminou, nom gerar mais rondas
+	// Round-robin or already finished: no more rounds to generate
 	if session.IsRoundRobin || session.Finished {
-		// Verificar se atingiu o total
+		// Check if total comparisons reached
 		if session.CompletedComparisons >= session.TotalComparisons {
 			db.Exec("UPDATE versus_sessions SET finished = 1 WHERE id = ?", sessionID)
 			return true, nil
 		}
-		// Em round-robin, verificar se há mais duelos
+		// In round-robin, check if any matches remain
 		next, err := GetNextDuel(db, sessionID)
 		if err != nil {
 			return false, err
@@ -309,31 +308,31 @@ func GenerateNextRoundIfNeeded(db *sql.DB, sessionID int) (bool, error) {
 		return false, nil
 	}
 
-	// Verificar se atingimos o total de comparaçons
+	// Check if total comparisons reached
 	if session.CompletedComparisons >= session.TotalComparisons {
 		db.Exec("UPDATE versus_sessions SET finished = 1 WHERE id = ?", sessionID)
 		return true, nil
 	}
 
-	// Verificar se há duelos pendentes na ronda actual
+	// Check if there are pending matches in the current round
 	next, err := GetNextDuel(db, sessionID)
 	if err != nil {
 		return false, err
 	}
 	if next != nil {
-		return false, nil // Ainda há duelos por jogar nesta ronda
+		return false, nil // Matches still pending in this round
 	}
 
-	// Calcular quantas comparaçons faltam
+	// Calculate how many comparisons remain
 	remaining := session.TotalComparisons - session.CompletedComparisons
 
-	// Gerar a próxima ronda usando emparelamento suíço
+	// Generate the next round using Swiss pairings
 	err = generateSwissRound(db, sessionID, session.CurrentRound+1, remaining)
 	if err != nil {
 		return false, err
 	}
 
-	// Actualizar a ronda actual
+	// Advance to the next round
 	_, err = db.Exec(
 		"UPDATE versus_sessions SET current_round = current_round + 1 WHERE id = ?",
 		sessionID,
@@ -341,37 +340,37 @@ func GenerateNextRoundIfNeeded(db *sql.DB, sessionID int) (bool, error) {
 	return false, err
 }
 
-// generateSwissRound gera os emparelamentos para uma nova ronda do torneio suíço.
-// Emparelha elementos com pontuaçom similar, evitando repetir enfrentamentos.
+// generateSwissRound generates pairings for a new Swiss-tournament round.
+// Matches items with similar scores, avoiding rematches wherever possible.
 func generateSwissRound(db *sql.DB, sessionID, roundNum, maxMatches int) error {
-	// Obter as classificaçons actuais, ordenadas por vitórias (descendente)
+	// Fetch current standings ordered by wins (descending)
 	standings, err := GetStandings(db, sessionID)
 	if err != nil {
 		return err
 	}
 
-	// Obter todos os enfrentamentos já realizados (para evitar repetiçons)
+	// Fetch all already-played pairs (to avoid rematches)
 	played, err := getPlayedPairs(db, sessionID)
 	if err != nil {
 		return err
 	}
 
-	// Obter o último match_order
+	// Fetch the current highest match_order
 	var maxOrder int
 	db.QueryRow(
 		"SELECT COALESCE(MAX(match_order), 0) FROM versus_matches WHERE session_id = ?",
 		sessionID,
 	).Scan(&maxOrder)
 
-	// Algoritmo de emparelamento suíço:
-	// 1. Ordenar por vitórias (descendente)
-	// 2. Tentar emparelhar o primeiro com o segundo, o terceiro com o quarto, etc.
-	// 3. Se um par já jogou entre si, deslizar para baixo
-	paired := make(map[int]bool) // Marcar elementos já emparelhados
+	// Swiss pairing algorithm:
+	// 1. Sort by wins (descending)
+	// 2. Try to pair 1st with 2nd, 3rd with 4th, etc.
+	// 3. If a pair has already played, slide down to find an alternative
+	paired := make(map[int]bool) // track already-paired items
 	order := maxOrder + 1
 	matchCount := 0
 
-	// Calcular máximo de partidas nesta ronda (n/2, mas sem exceder o restante)
+	// Cap matches per round at n/2, but never exceed remaining budget
 	maxInRound := len(standings) / 2
 	if maxInRound > maxMatches {
 		maxInRound = maxMatches
@@ -388,19 +387,19 @@ func generateSwissRound(db *sql.DB, sessionID, roundNum, maxMatches int) error {
 			continue
 		}
 
-		// Tentar emparelhar com o próximo nom emparelhado
+		// Try to pair with the next unpaired item
 		for j := i + 1; j < len(standings); j++ {
 			if paired[standings[j].ItemID] {
 				continue
 			}
 
-			// Verificar se este par já jogou
+			// Skip pairs that have already played each other
 			pairKey := makePairKey(standings[i].ItemID, standings[j].ItemID)
 			if played[pairKey] {
-				continue // Já jogárom, tentar outro rival
+				continue
 			}
 
-			// Emparelhar!
+			// Pair them!
 			_, err := tx.Exec(`
 				INSERT INTO versus_matches (session_id, round, item_a_id, item_b_id, match_order)
 				VALUES (?, ?, ?, ?, ?)
@@ -417,8 +416,8 @@ func generateSwissRound(db *sql.DB, sessionID, roundNum, maxMatches int) error {
 		}
 	}
 
-	// Se nom conseguimos emparelhar ninguém (todos já jogárom entre si),
-	// permitir repetiçons para completar a ronda
+	// If no pairings were made (all possible pairs have already played),
+	// allow rematches to complete the round
 	if matchCount == 0 {
 		for i := 0; i+1 < len(standings) && matchCount < maxInRound; i += 2 {
 			_, err := tx.Exec(`
@@ -436,9 +435,9 @@ func generateSwissRound(db *sql.DB, sessionID, roundNum, maxMatches int) error {
 	return tx.Commit()
 }
 
-// GetStandings obtém as classificaçons de todos os elementos, ordenadas por vitórias e Buchholz
+// GetStandings retrieves all items' standings ordered by wins and Buchholz score.
 func GetStandings(db *sql.DB, sessionID int) ([]VersusStanding, error) {
-	// Primeiro, recalcular Buchholz para todos
+	// Recalculate Buchholz scores first
 	if err := recalcBuchholz(db, sessionID); err != nil {
 		return nil, err
 	}
@@ -466,11 +465,11 @@ func GetStandings(db *sql.DB, sessionID int) ([]VersusStanding, error) {
 	return standings, nil
 }
 
-// recalcBuchholz recalcula a pontuaçom de Buchholz para todos os elementos.
-// Buchholz = soma das vitórias de todos os rivais com quem jogou.
-// Quanto maior, significa que enfrentou rivais mais fortes.
+// recalcBuchholz recalculates the Buchholz score for all items.
+// Buchholz = sum of the wins of all opponents faced.
+// A higher score indicates stronger opponents were beaten.
 func recalcBuchholz(db *sql.DB, sessionID int) error {
-	// Obter todos os enfrentamentos jogados
+	// Fetch all played matches
 	rows, err := db.Query(`
 		SELECT item_a_id, item_b_id, winner_id
 		FROM versus_matches
@@ -481,11 +480,11 @@ func recalcBuchholz(db *sql.DB, sessionID int) error {
 	}
 	defer rows.Close()
 
-	// Construir o mapa de oponentes de cada elemento
+	// Build a map of opponents for each item
 	type matchInfo struct {
 		opponentID int
 	}
-	opponents := make(map[int][]int) // itemID -> lista de oponentes
+	opponents := make(map[int][]int) // itemID -> list of opponents
 
 	for rows.Next() {
 		var aID, bID int
@@ -497,7 +496,7 @@ func recalcBuchholz(db *sql.DB, sessionID int) error {
 		opponents[bID] = append(opponents[bID], aID)
 	}
 
-	// Obter as vitórias de cada elemento
+	// Fetch win counts for each item
 	winsMap := make(map[int]int)
 	standingRows, err := db.Query(
 		"SELECT item_id, wins FROM versus_standings WHERE session_id = ?", sessionID,
@@ -515,7 +514,7 @@ func recalcBuchholz(db *sql.DB, sessionID int) error {
 		winsMap[itemID] = wins
 	}
 
-	// Calcular e actualizar Buchholz para cada elemento
+	// Calculate and store Buchholz for each item
 	for itemID, opps := range opponents {
 		var buchholz float64
 		for _, oppID := range opps {
@@ -533,8 +532,8 @@ func recalcBuchholz(db *sql.DB, sessionID int) error {
 	return nil
 }
 
-// getPlayedPairs obtém todos os pares que já jogárom entre si.
-// Retorna um mapa de "ID_menor-ID_maior" -> true
+// getPlayedPairs returns all pairs that have already faced each other.
+// Returns a map of "smaller_ID-larger_ID" -> true.
 func getPlayedPairs(db *sql.DB, sessionID int) (map[string]bool, error) {
 	rows, err := db.Query(
 		"SELECT item_a_id, item_b_id FROM versus_matches WHERE session_id = ?",
@@ -556,8 +555,8 @@ func getPlayedPairs(db *sql.DB, sessionID int) (map[string]bool, error) {
 	return pairs, nil
 }
 
-// makePairKey cria uma chave única para um par de elementos.
-// Usa sempre o ID menor primeiro para garantir consistência.
+// makePairKey creates a unique string key for a pair of items.
+// Always uses the smaller ID first to guarantee consistency.
 func makePairKey(a, b int) string {
 	if a > b {
 		a, b = b, a
@@ -565,8 +564,7 @@ func makePairKey(a, b int) string {
 	return fmt.Sprintf("%d-%d", a, b)
 }
 
-// UndoLastMatch desfaz o último enfrentamento jogado.
-// Reverte o resultado e as classificaçons.
+// UndoLastMatch reverts the last played match and its effect on standings.
 func UndoLastMatch(db *sql.DB, sessionID int) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -574,7 +572,7 @@ func UndoLastMatch(db *sql.DB, sessionID int) error {
 	}
 	defer tx.Rollback()
 
-	// Encontrar o último enfrentamento jogado
+	// Find the last played match
 	var matchID, itemAID, itemBID, winnerID int
 	err = tx.QueryRow(`
 		SELECT id, item_a_id, item_b_id, winner_id
@@ -584,22 +582,22 @@ func UndoLastMatch(db *sql.DB, sessionID int) error {
 		LIMIT 1
 	`, sessionID).Scan(&matchID, &itemAID, &itemBID, &winnerID)
 	if err != nil {
-		return err // Nom há nada para desfazer
+		return err // Nothing to undo
 	}
 
-	// Determinar o perdedor
+	// Determine the loser
 	loserID := itemBID
 	if winnerID == itemBID {
 		loserID = itemAID
 	}
 
-	// Limpar o resultado do enfrentamento
+	// Clear the match result
 	_, err = tx.Exec("UPDATE versus_matches SET winner_id = NULL WHERE id = ?", matchID)
 	if err != nil {
 		return err
 	}
 
-	// Reverter vitórias e derrotas
+	// Revert wins and losses
 	_, err = tx.Exec(
 		"UPDATE versus_standings SET wins = wins - 1 WHERE session_id = ? AND item_id = ?",
 		sessionID, winnerID,
@@ -615,7 +613,7 @@ func UndoLastMatch(db *sql.DB, sessionID int) error {
 		return err
 	}
 
-	// Decrementar comparaçons completadas
+	// Decrement completed comparisons counter
 	_, err = tx.Exec(
 		"UPDATE versus_sessions SET completed_comparisons = completed_comparisons - 1, finished = 0 WHERE id = ?",
 		sessionID,
@@ -627,21 +625,21 @@ func UndoLastMatch(db *sql.DB, sessionID int) error {
 	return tx.Commit()
 }
 
-// ApplyVersusResults aplica o resultado do torneio à lista.
-// Ordena os elementos segundo as classificaçons finais e actualiza as posiçons.
+// ApplyVersusResults applies the tournament result to the list.
+// Orders items according to the final standings and updates their positions.
 func ApplyVersusResults(db *sql.DB, sessionID int) error {
 	session, err := GetVersusSession(db, sessionID)
 	if err != nil {
 		return err
 	}
 
-	// Obter classificaçons finais (já ordenadas por vitórias + Buchholz)
+	// Fetch final standings (already sorted by wins + Buchholz)
 	standings, err := GetStandings(db, sessionID)
 	if err != nil {
 		return err
 	}
 
-	// Actualizar as posiçons na lista
+	// Update item positions in the list
 	itemIDs := make([]int, len(standings))
 	for i, s := range standings {
 		itemIDs[i] = s.ItemID
@@ -650,7 +648,7 @@ func ApplyVersusResults(db *sql.DB, sessionID int) error {
 	return UpdateItemPositions(db, session.ListID, itemIDs)
 }
 
-// makePairKeyInt cria uma chave numérica para ordenaçom
+// makePairKeyInt creates a numeric key for ordering purposes.
 func makePairKeyInt(a, b int) int64 {
 	if a > b {
 		a, b = b, a
@@ -658,7 +656,7 @@ func makePairKeyInt(a, b int) int64 {
 	return int64(a)*1000000 + int64(b)
 }
 
-// sortStandings ordena standings por vitórias (desc) e Buchholz (desc)
+// sortStandings sorts standings by wins (desc) then Buchholz (desc).
 func sortStandings(standings []VersusStanding) {
 	sort.Slice(standings, func(i, j int) bool {
 		if standings[i].Wins != standings[j].Wins {

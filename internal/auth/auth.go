@@ -9,18 +9,18 @@ import (
 	"time"
 )
 
-// User representa um utilizador autenticado.
+// User represents an authenticated user.
 type User struct {
 	ID                int
 	Username          string
-	DisplayName       string // Nome público (se vazio, usa Username)
+	DisplayName       string // Public display name (falls back to Username if empty)
 	IsAdmin           bool
-	DefaultPublic     bool   // Preferência: listas públicas por defeito?
-	DefaultVersusMode string // Preferência: "rapido" ou "detalhado"
-	ThemePreference   string // Preferência: "auto", "light" ou "dark"
+	DefaultPublic     bool   // Preference: make lists public by default?
+	DefaultVersusMode string // Preference: "rapido" or "detalhado"
+	ThemePreference   string // Preference: "auto", "light" or "dark"
 }
 
-// PublicName devolve o nome público do utilizador
+// PublicName returns the user's public display name.
 func (u *User) PublicName() string {
 	if u.DisplayName != "" {
 		return u.DisplayName
@@ -32,7 +32,7 @@ type contextKey string
 
 const userContextKey contextKey = "user"
 
-// Manager gere todas as operaçons de autenticaçom
+// Manager handles all authentication operations.
 type Manager struct {
 	db *sql.DB
 }
@@ -45,7 +45,7 @@ func (m *Manager) GetDB() *sql.DB {
 	return m.db
 }
 
-// UserFromContext extrai o utilizador do contexto do pedido HTTP
+// UserFromContext extracts the authenticated user from the HTTP request context.
 func UserFromContext(ctx context.Context) *User {
 	user, ok := ctx.Value(userContextKey).(*User)
 	if !ok {
@@ -54,7 +54,7 @@ func UserFromContext(ctx context.Context) *User {
 	return user
 }
 
-// RequireAuth verifica que o utilizador está autenticado
+// RequireAuth is middleware that verifies the user is authenticated.
 func (m *Manager) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session")
@@ -92,7 +92,7 @@ func (m *Manager) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// CreateSession cria uma nova sessom (cookie de 30 dias)
+// CreateSession creates a new session cookie valid for 30 days.
 func (m *Manager) CreateSession(w http.ResponseWriter, userID int) error {
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
@@ -109,7 +109,7 @@ func (m *Manager) CreateSession(w http.ResponseWriter, userID int) error {
 		return err
 	}
 
-	// Registar a última conexom
+	// Record last login timestamp
 	m.db.Exec("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", userID)
 
 	http.SetCookie(w, &http.Cookie{
@@ -125,7 +125,7 @@ func (m *Manager) CreateSession(w http.ResponseWriter, userID int) error {
 	return nil
 }
 
-// DestroySession elimina a sessom actual
+// DestroySession deletes the current session cookie.
 func (m *Manager) DestroySession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err == nil {
@@ -137,7 +137,7 @@ func (m *Manager) DestroySession(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Authenticate verifica as credenciais
+// Authenticate verifies user credentials and returns the user on success.
 func (m *Manager) Authenticate(username, password string) *User {
 	var user User
 	var passwordHash string
@@ -161,7 +161,7 @@ func (m *Manager) Authenticate(username, password string) *User {
 	return &user
 }
 
-// ChangePassword muda a palavra-chave
+// ChangePassword updates the user's password after verifying the current one.
 func (m *Manager) ChangePassword(userID int, currentPassword, newPassword string) error {
 	var passwordHash string
 	err := m.db.QueryRow(
@@ -184,7 +184,7 @@ func (m *Manager) ChangePassword(userID int, currentPassword, newPassword string
 	return err
 }
 
-// UpdatePreferences actualiza as preferências do utilizador
+// UpdatePreferences saves the user's display and behaviour preferences.
 func (m *Manager) UpdatePreferences(userID int, defaultPublic bool, defaultVersusMode, themePreference string) error {
 	dp := 0
 	if defaultPublic {
@@ -203,25 +203,25 @@ func (m *Manager) UpdatePreferences(userID int, defaultPublic bool, defaultVersu
 	return err
 }
 
-// UpdateDisplayName actualiza o nome público do utilizador
+// UpdateDisplayName updates the user's public display name.
 func (m *Manager) UpdateDisplayName(userID int, displayName string) error {
 	_, err := m.db.Exec("UPDATE users SET display_name = ? WHERE id = ?", displayName, userID)
 	return err
 }
 
-// CleanExpiredSessions apaga sessons expiradas e tentativas de login antigas
+// CleanExpiredSessions deletes expired sessions and old failed login attempts.
 func (m *Manager) CleanExpiredSessions() {
 	m.db.Exec("DELETE FROM sessions WHERE expires_at < ?", time.Now())
-	// Limpar tentativas de login com mais de 2 horas
+	// Remove login attempts older than 2 hours
 	m.db.Exec("DELETE FROM login_attempts WHERE attempted_at < ?", time.Now().Add(-2*time.Hour))
 }
 
-// IsLoginBlocked verifica se um utilizador está bloqueado por demasiadas tentativas falhadas.
-// Bloqueia durante 60 minutos após 3 tentativas falhadas.
+// IsLoginBlocked returns true if the user is blocked due to too many failed attempts.
+// Blocks for 60 minutes after 3 failed attempts.
 func (m *Manager) IsLoginBlocked(username, ip string) (bool, int) {
 	cutoff := time.Now().Add(-60 * time.Minute)
 	var count int
-	// Contar tentativas falhadas nos últimos 60 minutos para este username OU IP
+	// Count failed attempts in the last 60 minutes for this username OR IP
 	err := m.db.QueryRow(
 		"SELECT COUNT(*) FROM login_attempts WHERE (username = ? OR ip_address = ?) AND attempted_at > ?",
 		username, ip, cutoff,
@@ -232,7 +232,7 @@ func (m *Manager) IsLoginBlocked(username, ip string) (bool, int) {
 	return count >= 3, count
 }
 
-// RecordFailedLogin regista uma tentativa de login falhada
+// RecordFailedLogin records a failed login attempt.
 func (m *Manager) RecordFailedLogin(username, ip string) {
 	m.db.Exec(
 		"INSERT INTO login_attempts (username, ip_address) VALUES (?, ?)",
@@ -240,7 +240,7 @@ func (m *Manager) RecordFailedLogin(username, ip string) {
 	)
 }
 
-// ClearLoginAttempts limpa as tentativas falhadas após um login com sucesso
+// ClearLoginAttempts clears failed attempts after a successful login.
 func (m *Manager) ClearLoginAttempts(username, ip string) {
 	m.db.Exec("DELETE FROM login_attempts WHERE username = ? OR ip_address = ?", username, ip)
 }

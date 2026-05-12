@@ -1,4 +1,4 @@
-// Package models contém as estruturas de dados e consultas à base de dados.
+// Package models contains the data structures and database queries.
 package models
 
 import (
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// User representa um utilizador na base de dados
+// User represents a user in the database.
 type User struct {
 	ID        int
 	Username  string
@@ -14,7 +14,7 @@ type User struct {
 	CreatedAt time.Time
 }
 
-// GetUserByID obtém um utilizador pelo seu ID
+// GetUserByID retrieves a user by their ID.
 func GetUserByID(db *sql.DB, id int) (*User, error) {
 	user := &User{}
 	err := db.QueryRow(
@@ -26,7 +26,7 @@ func GetUserByID(db *sql.DB, id int) (*User, error) {
 	return user, nil
 }
 
-// GetUserByUsername obtém um utilizador pelo seu nome de utilizador
+// GetUserByUsername retrieves a user by their username.
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	user := &User{}
 	err := db.QueryRow(

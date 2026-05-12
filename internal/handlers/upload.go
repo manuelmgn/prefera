@@ -14,7 +14,7 @@ const imgbbAPIKey = "2af9b79fe6bb155e02344bf3185e8196"
 const imgbbUploadURL = "https://api.imgbb.com/1/upload"
 const maxUploadSize = 10 << 20 // 10 MB
 
-// imgbbResponse representa a resposta da API do IMGBB
+// imgbbResponse represents the IMGBB API response
 type imgbbResponse struct {
 	Data struct {
 		DisplayURL string `json:"display_url"`
@@ -26,11 +26,11 @@ type imgbbResponse struct {
 	Status  int  `json:"status"`
 }
 
-// UploadImage é o proxy server-side para a API do IMGBB.
-// Recebe um ficheiro multipart (campo "image") e reenvia ao IMGBB.
-// Retorna JSON {"url": "..."} com o URL directo da imagem.
+// UploadImage is the server-side proxy for the IMGBB API.
+// Receives a multipart file (field "image") and forwards it to IMGBB.
+// Returns JSON {"url": "..."} with the direct image URL.
 func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
-	// Limitar o tamanho do pedido
+	// Limit request size
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize+1024)
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -46,14 +46,14 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Verificar tamanho
+	// Verify file size
 	if fileHeader.Size > maxUploadSize {
 		w.Header().Set("Content-Type", "application/json")
 		http.Error(w, `{"error":"Ficheiro demasiado grande (máx. 10 MB)"}`, http.StatusBadRequest)
 		return
 	}
 
-	// Ler os bytes da imagem
+	// Read the image bytes
 	imgBytes, err := io.ReadAll(file)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -61,10 +61,10 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Codificar em base64 para enviar ao IMGBB
+	// Base64-encode for IMGBB API
 	encoded := base64.StdEncoding.EncodeToString(imgBytes)
 
-	// Construir o pedido ao IMGBB
+	// Build the IMGBB request
 	formData := url.Values{}
 	formData.Set("key", imgbbAPIKey)
 	formData.Set("image", encoded)
@@ -90,7 +90,7 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Preferir display_url (sem expiração) sobre image.url
+	// Prefer display_url (no expiry) over image.url
 	imageURL := imgbbResp.Data.DisplayURL
 	if imageURL == "" {
 		imageURL = imgbbResp.Data.Image.URL
