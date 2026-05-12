@@ -1,13 +1,9 @@
-# Docker Compose for proj_listas
-# Stack: Projects | Container: proj_listas
-# Port: 7010
-
 services:
-  proj_listas:
+  prefera:
     build: .
-    container_name: proj_listas
+    container_name: prefera
     ports:
-      - "7010:7010"
+      - "${port}:${port}"
     volumes:
       # Volume to persist SQLite database
       - ./config/link_domains.txt:/app/config/link_domains.txt
@@ -16,10 +12,10 @@ services:
       - DB_PATH=/app/data/listas.db
       - DOMAINS_PATH=/app/config/link_domains.txt
     networks:
-      - truerat_public
+      - ${network}
     restart: unless-stopped
-    mem_limit: 256m
-    memswap_limit: 512m
+    mem_limit: ${mem_limit}
+    memswap_limit: ${mem_limit}
 networks:
   truerat_public:
     external: true
