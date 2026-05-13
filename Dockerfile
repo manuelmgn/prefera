@@ -21,9 +21,10 @@ WORKDIR /app
 # Copy compiled binary
 COPY --from=builder /build/prefera .
 
-# Copy templates and static files
+# Copy templates, static files, and config
 COPY --from=builder /build/templates ./templates
 COPY --from=builder /build/static ./static
+COPY --from=builder /build/config ./config
 
 # Create directories for database and config
 RUN mkdir -p /app/data /data
