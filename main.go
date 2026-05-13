@@ -173,8 +173,12 @@ func main() {
 		r.Post("/versus/{sid}/save", h.VersusSave)
 	})
 
-	// Start server on port 7010
-	port := ":7010"
+	// Start server on PORT env var (Railway) or default to 7010
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "7010"
+	}
+	port = ":" + port
 	log.Printf("Server started at http://localhost%s", port)
 	if err := http.ListenAndServe(port, r); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

@@ -1,0 +1,9 @@
+.git
+.gitignore
+.DS_Store
+*.db
+*.db-shm
+*.db-wal
+data/
+.env
+*.env

@@ -1,3 +1,16 @@
 data/
 .git/
+.gitignore
+.railwayignore
 *.db
+*.db-shm
+*.db-wal
+.env
+*.env
+*.md
+.DS_Store
+.vscode/
+.idea/
+node_modules/
+RAILWAY.md
+README.md

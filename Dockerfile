@@ -25,14 +25,15 @@ COPY --from=builder /build/prefera .
 COPY --from=builder /build/templates ./templates
 COPY --from=builder /build/static ./static
 
-# Create directory for database
-RUN mkdir -p /app/data
+# Create directories for database and config
+RUN mkdir -p /app/data /data
 
-# Environment variables
-ENV DB_PATH=/app/data/listas.db
+# Environment variables (can be overridden by Railway)
+ENV DB_PATH=/data/listas.db
 ENV TMPL_PATH=/app/templates
 ENV STATIC_PATH=/app/static
 
-EXPOSE 7010
+# Dynamic port assigned by Railway (default to 7010 for local development)
+EXPOSE 3000
 
 CMD ["./prefera"]

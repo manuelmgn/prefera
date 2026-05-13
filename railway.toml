@@ -1,0 +1,15 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+numReplicas = 1
+restartPolicyType = "on-failure"
+restartPolicyMaxRetries = 10
+
+[env]
+# Database path for Railway (uses ephemeral storage by default)
+# For persistent storage, attach a volume in Railway dashboard
+DB_PATH = "/data/listas.db"
+DOMAINS_PATH = "./config/link_domains.txt"
+TMPL_PATH = "/app/templates"
+STATIC_PATH = "/app/static"
