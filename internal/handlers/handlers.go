@@ -479,3 +479,81 @@ func (h *Handler) AdminChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/admin?success=Palavra-chave+mudada", http.StatusSeeOther)
 }
+
+// RegisterPage renders the public registration form.
+func (h *Handler) RegisterPage(w http.ResponseWriter, r *http.Request) {
+	h.renderFullPage(w, "register", map[string]interface{}{})
+}
+
+// RegisterSubmit processes the registration form: creates the account
+// and logs the new user in directly.
+func (h *Handler) RegisterSubmit(w http.ResponseWriter, r *http.Request) {
+	renderError := func(msg string) {
+		h.renderFullPage(w, "register", map[string]interface{}{
+			"Error":    msg,
+			"Username": r.FormValue("username"),
+			"Email":    r.FormValue("email"),
+		})
+	}
+
+	username := SanitizeInput(r.FormValue("username"), MaxUsernameLen)
+	email := SanitizeInput(r.FormValue("email"), MaxListNameLen)
+	password := r.FormValue("password")
+
+	if username == "" || email == "" || password == "" {
+		renderError("Nome de utilizador, email e palavra-chave som obrigatórios")
+		return
+	}
+
+	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
+		renderError("O email nom parece válido")
+		return
+	}
+
+	if len(password) < 6 {
+		renderError("A palavra-chave deve ter ao menos 6 caracteres")
+		return
+	}
+
+	// Reject duplicate username or email
+	var count int
+	if err := h.db.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", username).Scan(&count); err != nil || count > 0 {
+		renderError("Já existe um utilizador com esse nome")
+		return
+	}
+	if err := h.db.QueryRow("SELECT COUNT(*) FROM users WHERE email = $1", email).Scan(&count); err != nil || count > 0 {
+		renderError("Já existe um utilizador com esse email")
+		return
+	}
+
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		renderError("Erro ao criar a conta")
+		return
+	}
+
+	res, err := h.db.Exec(
+		"INSERT INTO users (username, password_hash, display_name, email) VALUES ($1, $2, $3, $4)",
+		username, hash, username, email,
+	)
+	if err != nil {
+		renderError("Erro ao criar a conta")
+		return
+	}
+
+	id, _ := res.LastInsertId()
+	if id == 0 {
+		// PostgreSQL doesn't support LastInsertId; fetch by username
+		var dbID int
+		if err := h.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&dbID); err == nil {
+			id = int64(dbID)
+		}
+	}
+
+	if err := h.auth.CreateSession(w, int(id)); err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}

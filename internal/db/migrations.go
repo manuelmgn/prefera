@@ -168,6 +168,7 @@ func Migrate(database *sql.DB, isPostgres bool) error {
 	database.Exec("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''")
 	database.Exec("ALTER TABLE users ADD COLUMN theme_preference TEXT NOT NULL DEFAULT 'auto'")
 	database.Exec("ALTER TABLE users ADD COLUMN last_login_at DATETIME")
+	database.Exec("ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''")
 	database.Exec("ALTER TABLE lists ADD COLUMN collective_source_id INTEGER REFERENCES collective_lists(id)")
 	database.Exec("ALTER TABLE collective_lists ADD COLUMN is_public INTEGER NOT NULL DEFAULT 1")
 	database.Exec("ALTER TABLE collective_lists ADD COLUMN vote_permission TEXT NOT NULL DEFAULT 'all'")

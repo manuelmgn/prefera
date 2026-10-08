@@ -99,6 +99,8 @@ func NewRouter(database *sql.DB) (http.Handler, error) {
 	// Public routes (no authentication required)
 	r.Get("/login", h.LoginPage)
 	r.Post("/login", h.LoginSubmit)
+	r.Get("/register", h.RegisterPage)
+	r.Post("/register", h.RegisterSubmit)
 
 	// Protected routes (require authentication)
 	r.Group(func(r chi.Router) {
