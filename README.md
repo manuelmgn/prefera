@@ -6,8 +6,7 @@ Escrita en Go (chi + templates HTML). Funciona con SQLite local o PostgreSQL
 
 ## Estructura
 
-- `main.go` — servidor local (`go run .`, puerto 7010, SQLite en `./data/listas.db`)
-- `api/index.go` — entry point serverless para Vercel
+- `main.go` — servidor HTTP (local: `go run .`, puerto 7010 con SQLite en `./data/listas.db`; en Vercel: el mismo binario, Postgres vía `DATABASE_URL`)
 - `internal/server` — construcción del router; incluye embebidos `templates/`, `static/` y `dominios.txt` (go:embed)
 - `internal/db` — conexión: `DATABASE_URL` (Postgres) > `LIBSQL_URL` (Turso) > SQLite local (`DB_PATH`)
 - `internal/handlers`, `internal/auth`, `internal/models` — lógica de la app
