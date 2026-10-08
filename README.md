@@ -20,7 +20,7 @@ La SQL usa placeholders `$1, $2, ...` (válidos en SQLite y Postgres) y
 go run .          # http://localhost:7010 (SQLite local, migra automática)
 ```
 
-Usuario admin inicial: `listadmin` (cambia la contraseña al primer login).
+Usuario admin inicial: `admin` / `admin` (cambia la contraseña al primer login).
 
 ## Vercel + Postgres
 

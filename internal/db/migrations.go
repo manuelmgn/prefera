@@ -207,34 +207,44 @@ func Migrate(database *sql.DB, isPostgres bool) error {
 // seedAdmin creates the default administrator account.
 // The password is bcrypt-hashed before being stored.
 func seedAdmin(database *sql.DB) error {
-	// Check if admin already exists
+	const adminUsername = "admin"
+	const adminPassword = "admin"
+
+	// Nothing to do if the admin user already exists
 	var count int
-	err := database.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", "listadmin").Scan(&count)
-	if err != nil {
+	if err := database.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", adminUsername).Scan(&count); err != nil {
 		return err
 	}
-
-	// Nothing to do if admin already exists
 	if count > 0 {
 		return nil
 	}
 
-	// Generate bcrypt hash for the password
-	// Cost 12 is a good balance between security and speed
-	hash, err := bcrypt.GenerateFromPassword([]byte("Kv8$mTnR3xPq#2Lw"), 12)
+	hash, err := bcrypt.GenerateFromPassword([]byte(adminPassword), 12)
 	if err != nil {
 		return fmt.Errorf("failed to generate hash: %w", err)
 	}
 
-	// Insert admin user into the database
+	// Migrate a legacy admin account (e.g. "listadmin") to the new username
+	res, err := database.Exec(
+		"UPDATE users SET username = $1, password_hash = $2 WHERE is_admin = 1",
+		adminUsername, string(hash),
+	)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		log.Println("Admin credentials updated: admin")
+		return nil
+	}
+
 	_, err = database.Exec(
 		"INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, 1)",
-		"listadmin", string(hash),
+		adminUsername, string(hash),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert admin user: %w", err)
 	}
 
-	log.Println("Admin user created: listadmin")
+	log.Println("Admin user created: admin")
 	return nil
 }
