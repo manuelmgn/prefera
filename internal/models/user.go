@@ -18,7 +18,7 @@ type User struct {
 func GetUserByID(db *sql.DB, id int) (*User, error) {
 	user := &User{}
 	err := db.QueryRow(
-		"SELECT id, username, is_admin, created_at FROM users WHERE id = ?", id,
+		"SELECT id, username, is_admin, created_at FROM users WHERE id = $1", id,
 	).Scan(&user.ID, &user.Username, &user.IsAdmin, &user.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func GetUserByID(db *sql.DB, id int) (*User, error) {
 func GetUserByUsername(db *sql.DB, username string) (*User, error) {
 	user := &User{}
 	err := db.QueryRow(
-		"SELECT id, username, is_admin, created_at FROM users WHERE username = ?", username,
+		"SELECT id, username, is_admin, created_at FROM users WHERE username = $1", username,
 	).Scan(&user.ID, &user.Username, &user.IsAdmin, &user.CreatedAt)
 	if err != nil {
 		return nil, err

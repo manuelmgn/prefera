@@ -13,3 +13,5 @@ proj_listas
 
 # OS
 .DS_Store
+.vercel
+.env*

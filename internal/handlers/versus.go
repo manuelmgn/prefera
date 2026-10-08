@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"prefera/internal/auth"
-	"prefera/internal/models"
+	"proj_listas/internal/auth"
+	"proj_listas/internal/models"
 )
 
 // VersusStart initiates a new Versus session for a list.
@@ -240,12 +240,12 @@ func (h *Handler) VersusResult(w http.ResponseWriter, r *http.Request) {
 
 	// If this is a collective shadow list, sync and redirect
 	var collectiveSourceID sql.NullInt64
-	h.db.QueryRow("SELECT collective_source_id FROM lists WHERE id = ?", session.ListID).Scan(&collectiveSourceID)
+	h.db.QueryRow("SELECT collective_source_id FROM lists WHERE id = $1", session.ListID).Scan(&collectiveSourceID)
 	if collectiveSourceID.Valid && collectiveSourceID.Int64 > 0 {
 		// Sync the versus result back to the collective list
 		models.SyncVersusResultToCollective(h.db, session.ListID)
 		// Delete the shadow list and its versus session (safe to do after sync)
-		h.db.Exec("DELETE FROM lists WHERE id = ?", session.ListID)
+		h.db.Exec("DELETE FROM lists WHERE id = $1", session.ListID)
 		http.Redirect(w, r, "/collective/"+strconv.Itoa(int(collectiveSourceID.Int64)), http.StatusSeeOther)
 		return
 	}

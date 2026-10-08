@@ -41,28 +41,31 @@ type ListItemInput struct {
 // CreateList creates a new list and its items.
 // Returns the ID of the created list.
 func CreateList(db *sql.DB, userID int, name, description string, isPublic bool, items []ListItemInput) (int, error) {
+	// Pass as int (0/1): the column is INTEGER in both dialects and
+	// PostgreSQL rejects boolean parameters for integer columns
+	isPublicInt := 0
+	if isPublic {
+		isPublicInt = 1
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec(
-		"INSERT INTO lists (user_id, name, description, is_public) VALUES (?, ?, ?, ?)",
-		userID, name, description, isPublic,
-	)
-	if err != nil {
-		return 0, err
-	}
-
-	listID, err := result.LastInsertId()
+	var listID int
+	err = tx.QueryRow(
+		"INSERT INTO lists (user_id, name, description, is_public) VALUES ($1, $2, $3, $4) RETURNING id",
+		userID, name, description, isPublicInt,
+	).Scan(&listID)
 	if err != nil {
 		return 0, err
 	}
 
 	for i, item := range items {
 		_, err = tx.Exec(
-			"INSERT INTO list_items (list_id, name, description, link, image, position) VALUES (?, ?, ?, ?, ?, ?)",
+			"INSERT INTO list_items (list_id, name, description, link, image, position) VALUES ($1, $2, $3, $4, $5, $6)",
 			listID, item.Name, item.Description, item.Link, item.Image, i+1,
 		)
 		if err != nil {
@@ -85,7 +88,7 @@ func GetListByID(db *sql.DB, id int) (*List, error) {
 		       l.created_at, l.updated_at, COALESCE(NULLIF(u.display_name,''), u.username)
 		FROM lists l
 		JOIN users u ON l.user_id = u.id
-		WHERE l.id = ?
+		WHERE l.id = $1
 	`, id).Scan(
 		&list.ID, &list.UserID, &list.Name, &list.Description,
 		&list.IsPublic, &list.CreatedAt, &list.UpdatedAt, &list.AuthorName,
@@ -106,7 +109,7 @@ func GetListByID(db *sql.DB, id int) (*List, error) {
 // GetListItems retrieves all items in a list ordered by position.
 func GetListItems(db *sql.DB, listID int) ([]ListItem, error) {
 	rows, err := db.Query(
-		"SELECT id, list_id, name, description, link, image, position FROM list_items WHERE list_id = ? ORDER BY position",
+		"SELECT id, list_id, name, description, link, image, position FROM list_items WHERE list_id = $1 ORDER BY position",
 		listID,
 	)
 	if err != nil {
@@ -132,7 +135,7 @@ func GetListsForUser(db *sql.DB, userID int) ([]List, error) {
 		       l.created_at, l.updated_at, COALESCE(NULLIF(u.display_name,''), u.username)
 		FROM lists l
 		JOIN users u ON l.user_id = u.id
-		WHERE l.user_id = ? AND l.collective_source_id IS NULL
+		WHERE l.user_id = $1 AND l.collective_source_id IS NULL
 		ORDER BY l.created_at DESC
 	`, userID)
 	if err != nil {
@@ -169,7 +172,7 @@ func GetPublicLists(db *sql.DB, excludeUserID int) ([]List, error) {
 		       l.created_at, l.updated_at, COALESCE(NULLIF(u.display_name,''), u.username)
 		FROM lists l
 		JOIN users u ON l.user_id = u.id
-		WHERE l.is_public = 1 AND l.user_id != ? AND l.collective_source_id IS NULL
+		WHERE l.is_public = 1 AND l.user_id != $1 AND l.collective_source_id IS NULL
 		ORDER BY l.updated_at DESC
 	`, excludeUserID)
 	if err != nil {
@@ -201,16 +204,17 @@ func GetPublicLists(db *sql.DB, excludeUserID int) ([]List, error) {
 
 // GetRecentListsForUser retrieves the user's lists from the last 3 months, up to the given limit.
 func GetRecentListsForUser(db *sql.DB, userID, limit int) ([]List, error) {
+	cutoff := time.Now().AddDate(0, -3, 0)
 	rows, err := db.Query(`
 		SELECT l.id, l.user_id, l.name, l.description, l.is_public,
 		       l.created_at, l.updated_at, COALESCE(NULLIF(u.display_name,''), u.username)
 		FROM lists l
 		JOIN users u ON l.user_id = u.id
-		WHERE l.user_id = ? AND l.collective_source_id IS NULL
-		  AND l.created_at >= datetime('now', '-3 months')
+		WHERE l.user_id = $1 AND l.collective_source_id IS NULL
+		  AND l.created_at >= $2
 		ORDER BY l.created_at DESC
-		LIMIT ?
-	`, userID, limit)
+		LIMIT $3
+	`, userID, cutoff, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +243,7 @@ func GetRecentListsForUser(db *sql.DB, userID, limit int) ([]List, error) {
 func CountListsForUser(db *sql.DB, userID int) (int, error) {
 	var n int
 	err := db.QueryRow(
-		"SELECT COUNT(*) FROM lists WHERE user_id = ? AND collective_source_id IS NULL",
+		"SELECT COUNT(*) FROM lists WHERE user_id = $1 AND collective_source_id IS NULL",
 		userID,
 	).Scan(&n)
 	return n, err
@@ -252,9 +256,9 @@ func GetLatestPublicLists(db *sql.DB, excludeUserID, limit int) ([]List, error) 
 		       l.created_at, l.updated_at, COALESCE(NULLIF(u.display_name,''), u.username)
 		FROM lists l
 		JOIN users u ON l.user_id = u.id
-		WHERE l.is_public = 1 AND l.user_id != ? AND l.collective_source_id IS NULL
+		WHERE l.is_public = 1 AND l.user_id != $1 AND l.collective_source_id IS NULL
 		ORDER BY l.created_at DESC
-		LIMIT ?
+		LIMIT $2
 	`, excludeUserID, limit)
 	if err != nil {
 		return nil, err
@@ -283,7 +287,7 @@ func GetLatestPublicLists(db *sql.DB, excludeUserID, limit int) ([]List, error) 
 // GetTopItems retrieves the top N items from a list ordered by position.
 func GetTopItems(db *sql.DB, listID, limit int) ([]ListItem, error) {
 	rows, err := db.Query(
-		"SELECT id, list_id, name, description, link, image, position FROM list_items WHERE list_id = ? ORDER BY position LIMIT ?",
+		"SELECT id, list_id, name, description, link, image, position FROM list_items WHERE list_id = $1 ORDER BY position LIMIT $2",
 		listID, limit,
 	)
 	if err != nil {
@@ -304,10 +308,14 @@ func GetTopItems(db *sql.DB, listID, limit int) ([]ListItem, error) {
 
 // UpdateList updates a list's name, description, and visibility.
 func UpdateList(db *sql.DB, listID int, name, description string, isPublic bool) error {
+	isPublicInt := 0
+	if isPublic {
+		isPublicInt = 1
+	}
 	_, err := db.Exec(`
-		UPDATE lists SET name = ?, description = ?, is_public = ?, updated_at = CURRENT_TIMESTAMP
-		WHERE id = ?
-	`, name, description, isPublic, listID)
+		UPDATE lists SET name = $1, description = $2, is_public = $3, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $4
+	`, name, description, isPublicInt, listID)
 	return err
 }
 
@@ -323,7 +331,7 @@ func UpdateItemPositions(db *sql.DB, listID int, itemIDs []int) error {
 	// Update position for each item
 	for i, itemID := range itemIDs {
 		_, err = tx.Exec(
-			"UPDATE list_items SET position = ? WHERE id = ? AND list_id = ?",
+			"UPDATE list_items SET position = $1 WHERE id = $2 AND list_id = $3",
 			i+1, itemID, listID,
 		)
 		if err != nil {
@@ -333,7 +341,7 @@ func UpdateItemPositions(db *sql.DB, listID int, itemIDs []int) error {
 
 	// Update the list's updated_at timestamp
 	_, err = tx.Exec(
-		"UPDATE lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", listID,
+		"UPDATE lists SET updated_at = CURRENT_TIMESTAMP WHERE id = $1", listID,
 	)
 	if err != nil {
 		return err
@@ -344,7 +352,7 @@ func UpdateItemPositions(db *sql.DB, listID int, itemIDs []int) error {
 
 // DeleteList deletes a list and all its items (via CASCADE).
 func DeleteList(db *sql.DB, listID int) error {
-	_, err := db.Exec("DELETE FROM lists WHERE id = ?", listID)
+	_, err := db.Exec("DELETE FROM lists WHERE id = $1", listID)
 	return err
 }
 
@@ -375,14 +383,14 @@ func UpdateListItems(db *sql.DB, listID int, items []ListItemInput) error {
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec("DELETE FROM list_items WHERE list_id = ?", listID)
+	_, err = tx.Exec("DELETE FROM list_items WHERE list_id = $1", listID)
 	if err != nil {
 		return err
 	}
 
 	for i, item := range items {
 		_, err = tx.Exec(
-			"INSERT INTO list_items (list_id, name, description, link, image, position) VALUES (?, ?, ?, ?, ?, ?)",
+			"INSERT INTO list_items (list_id, name, description, link, image, position) VALUES ($1, $2, $3, $4, $5, $6)",
 			listID, item.Name, item.Description, item.Link, item.Image, i+1,
 		)
 		if err != nil {
@@ -391,7 +399,7 @@ func UpdateListItems(db *sql.DB, listID int, items []ListItemInput) error {
 	}
 
 	_, err = tx.Exec(
-		"UPDATE lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", listID,
+		"UPDATE lists SET updated_at = CURRENT_TIMESTAMP WHERE id = $1", listID,
 	)
 	if err != nil {
 		return err
@@ -403,7 +411,7 @@ func UpdateListItems(db *sql.DB, listID int, items []ListItemInput) error {
 // UpdateItemDetails updates the description, link, and image of an individual item.
 func UpdateItemDetails(db *sql.DB, itemID int, description, link, image string) error {
 	_, err := db.Exec(
-		"UPDATE list_items SET description = ?, link = ?, image = ? WHERE id = ?",
+		"UPDATE list_items SET description = $1, link = $2, image = $3 WHERE id = $4",
 		description, link, image, itemID,
 	)
 	return err

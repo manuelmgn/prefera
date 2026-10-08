@@ -61,7 +61,7 @@ func GenerateShareCode(db *sql.DB) (string, error) {
 		}
 		code := strings.ToUpper(hex.EncodeToString(b))[:8]
 		var exists int
-		err := db.QueryRow("SELECT COUNT(*) FROM collective_lists WHERE share_code = ?", code).Scan(&exists)
+		err := db.QueryRow("SELECT COUNT(*) FROM collective_lists WHERE share_code = $1", code).Scan(&exists)
 		if err != nil {
 			return "", err
 		}
@@ -104,23 +104,18 @@ func CreateCollective(db *sql.DB, creatorID int, name, description string, isPub
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec(
-		"INSERT INTO collective_lists (creator_id, name, description, share_code, is_public, vote_permission, hide_items) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	var collectiveID int
+	err = tx.QueryRow(
+		"INSERT INTO collective_lists (creator_id, name, description, share_code, is_public, vote_permission, hide_items) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
 		creatorID, name, description, code, isPublicInt, votePermission, hideItemsInt,
-	)
+	).Scan(&collectiveID)
 	if err != nil {
 		return 0, "", err
 	}
-
-	collectiveID64, err := result.LastInsertId()
-	if err != nil {
-		return 0, "", err
-	}
-	collectiveID := int(collectiveID64)
 
 	for i, item := range items {
 		_, err = tx.Exec(
-			"INSERT INTO collective_items (collective_id, name, description, link, image, position) VALUES (?, ?, ?, ?, ?, ?)",
+			"INSERT INTO collective_items (collective_id, name, description, link, image, position) VALUES ($1, $2, $3, $4, $5, $6)",
 			collectiveID, item.Name, item.Description, item.Link, item.Image, i+1,
 		)
 		if err != nil {
@@ -130,7 +125,7 @@ func CreateCollective(db *sql.DB, creatorID int, name, description string, isPub
 
 	// The creator is automatically added as a participant
 	_, err = tx.Exec(
-		"INSERT INTO collective_participants (collective_id, user_id) VALUES (?, ?)",
+		"INSERT INTO collective_participants (collective_id, user_id) VALUES ($1, $2)",
 		collectiveID, creatorID,
 	)
 	if err != nil {
@@ -154,7 +149,7 @@ func GetCollectiveByID(db *sql.DB, id int) (*CollectiveList, error) {
 		       COALESCE(NULLIF(u.display_name,''), u.username)
 		FROM collective_lists c
 		JOIN users u ON c.creator_id = u.id
-		WHERE c.id = ?
+		WHERE c.id = $1
 	`, id).Scan(
 		&cl.ID, &cl.CreatorID, &cl.Name, &cl.Description, &cl.ShareCode,
 		&isPublicInt, &cl.VotePermission, &hideItemsInt, &cl.IsActive, &cl.CreatedAt, &cl.CreatorName,
@@ -165,8 +160,8 @@ func GetCollectiveByID(db *sql.DB, id int) (*CollectiveList, error) {
 	cl.IsPublic = isPublicInt == 1
 	cl.HideItems = hideItemsInt == 1
 
-	db.QueryRow("SELECT COUNT(*) FROM collective_participants WHERE collective_id = ?", id).Scan(&cl.Participants)
-	db.QueryRow("SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = ?", id).Scan(&cl.Ranked)
+	db.QueryRow("SELECT COUNT(*) FROM collective_participants WHERE collective_id = $1", id).Scan(&cl.Participants)
+	db.QueryRow("SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = $1", id).Scan(&cl.Ranked)
 
 	return cl, nil
 }
@@ -174,7 +169,7 @@ func GetCollectiveByID(db *sql.DB, id int) (*CollectiveList, error) {
 // GetCollectiveByShareCode retrieves a collective list by its share code.
 func GetCollectiveByShareCode(db *sql.DB, code string) (*CollectiveList, error) {
 	var id int
-	err := db.QueryRow("SELECT id FROM collective_lists WHERE share_code = ?", code).Scan(&id)
+	err := db.QueryRow("SELECT id FROM collective_lists WHERE share_code = $1", code).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +179,7 @@ func GetCollectiveByShareCode(db *sql.DB, code string) (*CollectiveList, error) 
 // GetCollectiveItems retrieves the canonical items of a collective list.
 func GetCollectiveItems(db *sql.DB, collectiveID int) ([]CollectiveItem, error) {
 	rows, err := db.Query(
-		"SELECT id, collective_id, name, description, link, image, position FROM collective_items WHERE collective_id = ? ORDER BY position",
+		"SELECT id, collective_id, name, description, link, image, position FROM collective_items WHERE collective_id = $1 ORDER BY position",
 		collectiveID,
 	)
 	if err != nil {
@@ -207,7 +202,7 @@ func GetCollectiveItems(db *sql.DB, collectiveID int) ([]CollectiveItem, error) 
 func IsParticipant(db *sql.DB, collectiveID, userID int) (bool, error) {
 	var count int
 	err := db.QueryRow(
-		"SELECT COUNT(*) FROM collective_participants WHERE collective_id = ? AND user_id = ?",
+		"SELECT COUNT(*) FROM collective_participants WHERE collective_id = $1 AND user_id = $2",
 		collectiveID, userID,
 	).Scan(&count)
 	return count > 0, err
@@ -217,7 +212,7 @@ func IsParticipant(db *sql.DB, collectiveID, userID int) (bool, error) {
 func HasUserRanked(db *sql.DB, collectiveID, userID int) (bool, error) {
 	var count int
 	err := db.QueryRow(
-		"SELECT COUNT(*) FROM collective_rankings WHERE collective_id = ? AND user_id = ?",
+		"SELECT COUNT(*) FROM collective_rankings WHERE collective_id = $1 AND user_id = $2",
 		collectiveID, userID,
 	).Scan(&count)
 	return count > 0, err
@@ -260,7 +255,7 @@ func CanUserView(db *sql.DB, collectiveID, userID int) bool {
 // JoinCollective adds a user as a participant in a collective list.
 func JoinCollective(db *sql.DB, collectiveID, userID int) error {
 	_, err := db.Exec(
-		"INSERT OR IGNORE INTO collective_participants (collective_id, user_id) VALUES (?, ?)",
+		"INSERT INTO collective_participants (collective_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
 		collectiveID, userID,
 	)
 	return err
@@ -273,7 +268,7 @@ func GetParticipants(db *sql.DB, collectiveID int) ([]CollectiveParticipant, err
 		       CASE WHEN EXISTS(SELECT 1 FROM collective_rankings cr WHERE cr.collective_id = cp.collective_id AND cr.user_id = cp.user_id) THEN 1 ELSE 0 END
 		FROM collective_participants cp
 		JOIN users u ON cp.user_id = u.id
-		WHERE cp.collective_id = ?
+		WHERE cp.collective_id = $1
 		ORDER BY cp.joined_at
 	`, collectiveID)
 	if err != nil {
@@ -303,7 +298,7 @@ func SaveUserRanking(db *sql.DB, collectiveID, userID int, itemPositions map[int
 	defer tx.Rollback()
 
 	_, err = tx.Exec(
-		"DELETE FROM collective_rankings WHERE collective_id = ? AND user_id = ?",
+		"DELETE FROM collective_rankings WHERE collective_id = $1 AND user_id = $2",
 		collectiveID, userID,
 	)
 	if err != nil {
@@ -312,7 +307,7 @@ func SaveUserRanking(db *sql.DB, collectiveID, userID int, itemPositions map[int
 
 	for itemID, position := range itemPositions {
 		_, err = tx.Exec(
-			"INSERT INTO collective_rankings (collective_id, user_id, item_id, position) VALUES (?, ?, ?, ?)",
+			"INSERT INTO collective_rankings (collective_id, user_id, item_id, position) VALUES ($1, $2, $3, $4)",
 			collectiveID, userID, itemID, position,
 		)
 		if err != nil {
@@ -326,7 +321,7 @@ func SaveUserRanking(db *sql.DB, collectiveID, userID int, itemPositions map[int
 // DeleteUserRanking deletes a user's ranking from a collective list.
 func DeleteUserRanking(db *sql.DB, collectiveID, userID int) error {
 	_, err := db.Exec(
-		"DELETE FROM collective_rankings WHERE collective_id = ? AND user_id = ?",
+		"DELETE FROM collective_rankings WHERE collective_id = $1 AND user_id = $2",
 		collectiveID, userID,
 	)
 	return err
@@ -337,7 +332,7 @@ func DeleteUserRanking(db *sql.DB, collectiveID, userID int) error {
 func GetCollectiveResult(db *sql.DB, collectiveID int) ([]CollectiveItem, error) {
 	// Count how many users have ranked
 	var rankedCount int
-	db.QueryRow("SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = ?", collectiveID).Scan(&rankedCount)
+	db.QueryRow("SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = $1", collectiveID).Scan(&rankedCount)
 
 	if rankedCount == 0 {
 		// No votes yet: return items in canonical order
@@ -349,7 +344,7 @@ func GetCollectiveResult(db *sql.DB, collectiveID int) ([]CollectiveItem, error)
 		       CAST(SUM(cr.position) AS REAL) / COUNT(cr.position) as avg_pos
 		FROM collective_items ci
 		INNER JOIN collective_rankings cr ON ci.id = cr.item_id AND cr.collective_id = ci.collective_id
-		WHERE ci.collective_id = ?
+		WHERE ci.collective_id = $1
 		GROUP BY ci.id, ci.name, ci.description, ci.link, ci.image
 		ORDER BY avg_pos ASC, ci.name ASC
 	`, collectiveID)
@@ -387,7 +382,7 @@ func GetCollectiveResult(db *sql.DB, collectiveID int) ([]CollectiveItem, error)
 // UpdateCollectiveItemDetails updates the description, link, and image of a collective item.
 func UpdateCollectiveItemDetails(db *sql.DB, itemID int, description, link, image string) error {
 	_, err := db.Exec(
-		"UPDATE collective_items SET description = ?, link = ?, image = ? WHERE id = ?",
+		"UPDATE collective_items SET description = $1, link = $2, image = $3 WHERE id = $4",
 		description, link, image, itemID,
 	)
 	return err
@@ -401,7 +396,7 @@ func GetAllUserRankings(db *sql.DB, collectiveID int) ([]CollectiveUserRanking, 
 		FROM collective_rankings cr
 		JOIN users u ON cr.user_id = u.id
 		JOIN collective_items ci ON cr.item_id = ci.id
-		WHERE cr.collective_id = ?
+		WHERE cr.collective_id = $1
 		ORDER BY cr.user_id, cr.position
 	`, collectiveID)
 	if err != nil {
@@ -447,7 +442,7 @@ func GetCollectivesForUser(db *sql.DB, userID int) ([]CollectiveList, error) {
 		FROM collective_lists c
 		JOIN users u ON c.creator_id = u.id
 		JOIN collective_participants cp ON c.id = cp.collective_id
-		WHERE cp.user_id = ?
+		WHERE cp.user_id = $1
 		ORDER BY c.created_at DESC
 	`, userID)
 	if err != nil {
@@ -482,7 +477,7 @@ func GetPublicCollectives(db *sql.DB, excludeUserID int) ([]CollectiveList, erro
 		FROM collective_lists c
 		JOIN users u ON c.creator_id = u.id
 		WHERE c.is_public = 1
-		  AND NOT EXISTS (SELECT 1 FROM collective_participants cp WHERE cp.collective_id = c.id AND cp.user_id = ?)
+		  AND NOT EXISTS (SELECT 1 FROM collective_participants cp WHERE cp.collective_id = c.id AND cp.user_id = $1)
 		ORDER BY c.created_at DESC
 	`, excludeUserID)
 	if err != nil {
@@ -517,9 +512,9 @@ func GetLatestCollectivesVisible(db *sql.DB, userID, limit int) ([]CollectiveLis
 		FROM collective_lists c
 		JOIN users u ON c.creator_id = u.id
 		JOIN collective_participants cp ON c.id = cp.collective_id
-		WHERE cp.user_id = ?
+		WHERE cp.user_id = $1
 		ORDER BY c.created_at DESC
-		LIMIT ?
+		LIMIT $2
 	`, userID, limit)
 	if err != nil {
 		return nil, err
@@ -552,7 +547,7 @@ func GetCollectivesVotedByUser(db *sql.DB, userID int) ([]CollectiveList, error)
 		       (SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = c.id)
 		FROM collective_lists c
 		JOIN users u ON c.creator_id = u.id
-		INNER JOIN collective_rankings cr ON c.id = cr.collective_id AND cr.user_id = ?
+		INNER JOIN collective_rankings cr ON c.id = cr.collective_id AND cr.user_id = $1
 		ORDER BY c.created_at DESC
 	`, userID)
 	if err != nil {
@@ -587,13 +582,13 @@ func GetLatestPublicCollectives(db *sql.DB, userID, limit int) ([]CollectiveList
 		       (SELECT COUNT(*) FROM collective_participants WHERE collective_id = c.id),
 		       (SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = c.id),
 		       CASE WHEN EXISTS(
-		           SELECT 1 FROM collective_rankings WHERE collective_id = c.id AND user_id = ?
+		           SELECT 1 FROM collective_rankings WHERE collective_id = c.id AND user_id = $1
 		       ) THEN 1 ELSE 0 END
 		FROM collective_lists c
 		JOIN users u ON c.creator_id = u.id
 		WHERE c.is_public = 1
 		ORDER BY c.created_at DESC
-		LIMIT ?
+		LIMIT $2
 	`, userID, limit)
 	if err != nil {
 		return nil, err
@@ -635,23 +630,18 @@ func CreateShadowListForVersus(db *sql.DB, collectiveID, userID int) (int, error
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec(
-		"INSERT INTO lists (user_id, name, description, is_public, collective_source_id) VALUES (?, ?, ?, 0, ?)",
+	var listID int
+	err = tx.QueryRow(
+		"INSERT INTO lists (user_id, name, description, is_public, collective_source_id) VALUES ($1, $2, $3, 0, $4) RETURNING id",
 		userID, cl.Name, cl.Description, collectiveID,
-	)
+	).Scan(&listID)
 	if err != nil {
 		return 0, err
 	}
-
-	listID64, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	listID := int(listID64)
 
 	for _, item := range items {
 		_, err = tx.Exec(
-			"INSERT INTO list_items (list_id, name, description, link, image, position) VALUES (?, ?, ?, ?, ?, ?)",
+			"INSERT INTO list_items (list_id, name, description, link, image, position) VALUES ($1, $2, $3, $4, $5, $6)",
 			listID, item.Name, item.Description, item.Link, item.Image, item.Position,
 		)
 		if err != nil {
@@ -673,7 +663,7 @@ func SyncVersusResultToCollective(db *sql.DB, listID int) error {
 	var collectiveID sql.NullInt64
 	var userID int
 	err := db.QueryRow(
-		"SELECT collective_source_id, user_id FROM lists WHERE id = ?", listID,
+		"SELECT collective_source_id, user_id FROM lists WHERE id = $1", listID,
 	).Scan(&collectiveID, &userID)
 	if err != nil || !collectiveID.Valid {
 		return nil
@@ -746,35 +736,30 @@ func ConvertListToCollective(db *sql.DB, listID, userID int, isPublic bool, vote
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec(
-		"INSERT INTO collective_lists (creator_id, name, description, share_code, is_public, vote_permission, hide_items) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	var collectiveID int
+	err = tx.QueryRow(
+		"INSERT INTO collective_lists (creator_id, name, description, share_code, is_public, vote_permission, hide_items) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
 		userID, list.Name, list.Description, code, isPublicInt, votePermission, hideItemsInt,
-	)
+	).Scan(&collectiveID)
 	if err != nil {
 		return 0, "", err
 	}
-
-	collectiveID64, err := result.LastInsertId()
-	if err != nil {
-		return 0, "", err
-	}
-	collectiveID := int(collectiveID64)
 
 	itemPositions := make(map[int]int)
 	for _, item := range list.Items {
-		res, err := tx.Exec(
-			"INSERT INTO collective_items (collective_id, name, description, link, image, position) VALUES (?, ?, ?, ?, ?, ?)",
+		var ciID int
+		err := tx.QueryRow(
+			"INSERT INTO collective_items (collective_id, name, description, link, image, position) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
 			collectiveID, item.Name, item.Description, item.Link, item.Image, item.Position,
-		)
+		).Scan(&ciID)
 		if err != nil {
 			return 0, "", err
 		}
-		ciID64, _ := res.LastInsertId()
-		itemPositions[int(ciID64)] = item.Position
+		itemPositions[ciID] = item.Position
 	}
 
 	_, err = tx.Exec(
-		"INSERT INTO collective_participants (collective_id, user_id) VALUES (?, ?)",
+		"INSERT INTO collective_participants (collective_id, user_id) VALUES ($1, $2)",
 		collectiveID, userID,
 	)
 	if err != nil {
@@ -783,7 +768,7 @@ func ConvertListToCollective(db *sql.DB, listID, userID int, isPublic bool, vote
 
 	for ciID, pos := range itemPositions {
 		_, err = tx.Exec(
-			"INSERT INTO collective_rankings (collective_id, user_id, item_id, position) VALUES (?, ?, ?, ?)",
+			"INSERT INTO collective_rankings (collective_id, user_id, item_id, position) VALUES ($1, $2, $3, $4)",
 			collectiveID, userID, ciID, pos,
 		)
 		if err != nil {
@@ -791,7 +776,7 @@ func ConvertListToCollective(db *sql.DB, listID, userID int, isPublic bool, vote
 		}
 	}
 
-	tx.Exec("DELETE FROM lists WHERE id = ?", listID)
+	tx.Exec("DELETE FROM lists WHERE id = $1", listID)
 
 	if err := tx.Commit(); err != nil {
 		return 0, "", err
@@ -827,7 +812,7 @@ func UpdateCollective(db *sql.DB, collectiveID int, name, description string, is
 	}
 
 	_, err := db.Exec(
-		"UPDATE collective_lists SET name = ?, description = ?, is_public = ?, vote_permission = ?, hide_items = ?, is_active = ? WHERE id = ?",
+		"UPDATE collective_lists SET name = $1, description = $2, is_public = $3, vote_permission = $4, hide_items = $5, is_active = $6 WHERE id = $7",
 		name, description, isPublicInt, votePermission, hideItemsInt, isActive, collectiveID,
 	)
 	return err
@@ -835,6 +820,6 @@ func UpdateCollective(db *sql.DB, collectiveID int, name, description string, is
 
 // DeleteCollective deletes a collective list and all associated data (via CASCADE).
 func DeleteCollective(db *sql.DB, collectiveID int) error {
-	_, err := db.Exec("DELETE FROM collective_lists WHERE id = ?", collectiveID)
+	_, err := db.Exec("DELETE FROM collective_lists WHERE id = $1", collectiveID)
 	return err
 }

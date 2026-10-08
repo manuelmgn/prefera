@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"prefera/internal/auth"
+	"proj_listas/internal/auth"
 )
 
 // Handler holds the shared dependencies for all HTTP controllers.
@@ -292,8 +292,8 @@ func (h *Handler) AdminPanel(w http.ResponseWriter, r *http.Request) {
 		Username     string
 		DisplayName  string
 		IsAdmin      bool
-		LastLogin    sql.NullString
-		CreatedAt    string
+		LastLogin    sql.NullTime
+		CreatedAt    sql.NullTime
 		PublicLists  int
 		PrivateLists int
 		TotalLists   int
@@ -382,7 +382,7 @@ func (h *Handler) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = h.db.Exec(
-		"INSERT INTO users (username, password_hash, display_name) VALUES (?, ?, ?)",
+		"INSERT INTO users (username, password_hash, display_name) VALUES ($1, $2, $3)",
 		username, hash, displayName,
 	)
 	if err != nil {
@@ -415,7 +415,7 @@ func (h *Handler) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	// Verify the target exists and is not an admin
 	var isAdmin int
-	err = h.db.QueryRow("SELECT is_admin FROM users WHERE id = ?", targetID).Scan(&isAdmin)
+	err = h.db.QueryRow("SELECT is_admin FROM users WHERE id = $1", targetID).Scan(&isAdmin)
 	if err != nil {
 		http.Redirect(w, r, "/admin?error=Utilizador+nom+encontrado", http.StatusSeeOther)
 		return
@@ -433,9 +433,9 @@ func (h *Handler) AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	tx.Exec("DELETE FROM sessions WHERE user_id = ?", targetID)
-	tx.Exec("DELETE FROM lists WHERE user_id = ?", targetID)
-	tx.Exec("DELETE FROM users WHERE id = ?", targetID)
+	tx.Exec("DELETE FROM sessions WHERE user_id = $1", targetID)
+	tx.Exec("DELETE FROM lists WHERE user_id = $1", targetID)
+	tx.Exec("DELETE FROM users WHERE id = $1", targetID)
 
 	if err := tx.Commit(); err != nil {
 		http.Redirect(w, r, "/admin?error=Erro+ao+apagar+utilizador", http.StatusSeeOther)
@@ -471,7 +471,7 @@ func (h *Handler) AdminChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.db.Exec("UPDATE users SET password_hash = ? WHERE id = ?", hash, targetID)
+	_, err = h.db.Exec("UPDATE users SET password_hash = $1 WHERE id = $2", hash, targetID)
 	if err != nil {
 		http.Redirect(w, r, "/admin?error=Erro+ao+mudar+palavra-chave", http.StatusSeeOther)
 		return

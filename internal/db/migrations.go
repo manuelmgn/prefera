@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -11,8 +12,11 @@ import (
 // Migrate runs the database migrations.
 // Creates all required tables if they don't exist
 // and inserts the default admin user.
-func Migrate(database *sql.DB) error {
-	// Full application schema
+// isPostgres selects the dialect-specific DDL (serial columns in PostgreSQL,
+// AUTOINCREMENT in SQLite).
+func Migrate(database *sql.DB, isPostgres bool) error {
+	// Schema is written with the SQLite serial-column syntax; for PostgreSQL
+	// the AUTOINCREMENT clause is replaced with GENERATED ALWAYS AS IDENTITY.
 	schema := `
 	-- Users table
 	-- Stores all application users
@@ -146,6 +150,13 @@ func Migrate(database *sql.DB) error {
 	`
 
 	// Execute the schema
+	if isPostgres {
+		schema = strings.ReplaceAll(schema,
+			"id INTEGER PRIMARY KEY AUTOINCREMENT",
+			"id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY")
+		// PostgreSQL has no DATETIME type; TIMESTAMP is the equivalent
+		schema = strings.ReplaceAll(schema, " DATETIME", " TIMESTAMP")
+	}
 	if _, err := database.Exec(schema); err != nil {
 		return fmt.Errorf("failed to create tables: %w", err)
 	}
@@ -169,12 +180,19 @@ func Migrate(database *sql.DB) error {
 	database.Exec("ALTER TABLE collective_items ADD COLUMN image TEXT NOT NULL DEFAULT ''")
 
 	// Failed login attempts table (rate limiting)
-	database.Exec(`CREATE TABLE IF NOT EXISTS login_attempts (
+	loginAttemptsDDL := `CREATE TABLE IF NOT EXISTS login_attempts (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT NOT NULL,
 		ip_address TEXT NOT NULL DEFAULT '',
 		attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	)`)
+	)`
+	if isPostgres {
+		loginAttemptsDDL = strings.ReplaceAll(loginAttemptsDDL,
+			"id INTEGER PRIMARY KEY AUTOINCREMENT",
+			"id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY")
+		loginAttemptsDDL = strings.ReplaceAll(loginAttemptsDDL, " DATETIME", " TIMESTAMP")
+	}
+	database.Exec(loginAttemptsDDL)
 	database.Exec("CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username, attempted_at)")
 
 	// Seed the admin user if it doesn't exist
@@ -191,7 +209,7 @@ func Migrate(database *sql.DB) error {
 func seedAdmin(database *sql.DB) error {
 	// Check if admin already exists
 	var count int
-	err := database.QueryRow("SELECT COUNT(*) FROM users WHERE username = ?", "listadmin").Scan(&count)
+	err := database.QueryRow("SELECT COUNT(*) FROM users WHERE username = $1", "listadmin").Scan(&count)
 	if err != nil {
 		return err
 	}
@@ -210,7 +228,7 @@ func seedAdmin(database *sql.DB) error {
 
 	// Insert admin user into the database
 	_, err = database.Exec(
-		"INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)",
+		"INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, 1)",
 		"listadmin", string(hash),
 	)
 	if err != nil {

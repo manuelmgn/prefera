@@ -1,0 +1,26 @@
+# dominios.txt
+# Cada sección [tipo] define un grupo de patrones.
+# Los patrones se comparan con strings.Contains() sobre la URL en minúsculas.
+# Líneas vacías y líneas con # se ignoran.
+
+[noticias]
+eldiario.es/
+elpais.com/
+praza.gal/
+nosdiario.gal/
+
+[social]
+facebook.com/
+instagram.com/
+
+[videos]
+youtube.com/
+youtu.be/
+vimeo.com/
+tiktok.com/
+
+[wiki]
+wikipedia.org/
+
+[outras]
+covadasratas.cc/

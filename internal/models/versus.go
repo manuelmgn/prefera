@@ -82,6 +82,12 @@ func StartVersusSession(db *sql.DB, listID int, mode string) (int, error) {
 
 	n := len(items)
 	total, isRR := CalcTotalComparisons(n, mode)
+	// Pass as int (0/1): the column is INTEGER and PostgreSQL
+	// rejects boolean parameters for integer columns
+	isRRInt := 0
+	if isRR {
+		isRRInt = 1
+	}
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -90,22 +96,21 @@ func StartVersusSession(db *sql.DB, listID int, mode string) (int, error) {
 	defer tx.Rollback()
 
 	// Create the session
-	result, err := tx.Exec(`
+	var sessionID int
+	err = tx.QueryRow(`
 		INSERT INTO versus_sessions (list_id, mode, total_comparisons, is_round_robin)
-		VALUES (?, ?, ?, ?)
-	`, listID, mode, total, isRR)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`, listID, mode, total, isRRInt).Scan(&sessionID)
 	if err != nil {
 		return 0, err
 	}
-
-	sessionID64, _ := result.LastInsertId()
-	sessionID := int(sessionID64)
 
 	// Initialise standings (everyone starts with 0 wins)
 	for _, item := range items {
 		_, err = tx.Exec(`
 			INSERT INTO versus_standings (session_id, item_id, wins, losses, buchholz)
-			VALUES (?, ?, 0, 0, 0)
+			VALUES ($1, $2, 0, 0, 0)
 		`, sessionID, item.ID)
 		if err != nil {
 			return 0, err
@@ -135,7 +140,7 @@ func generateRoundRobinMatches(tx *sql.Tx, sessionID int, items []ListItem) erro
 		for j := i + 1; j < len(items); j++ {
 			_, err := tx.Exec(`
 				INSERT INTO versus_matches (session_id, round, item_a_id, item_b_id, match_order)
-				VALUES (?, 1, ?, ?, ?)
+				VALUES ($1, 1, $2, $3, $4)
 			`, sessionID, items[i].ID, items[j].ID, order)
 			if err != nil {
 				return err
@@ -162,7 +167,7 @@ func generateFirstRound(tx *sql.Tx, sessionID int, items []ListItem) error {
 	for i := 0; i+1 < len(shuffled); i += 2 {
 		_, err := tx.Exec(`
 			INSERT INTO versus_matches (session_id, round, item_a_id, item_b_id, match_order)
-			VALUES (?, 1, ?, ?, ?)
+			VALUES ($1, 1, $2, $3, $4)
 		`, sessionID, shuffled[i].ID, shuffled[i+1].ID, order)
 		if err != nil {
 			return err
@@ -178,7 +183,7 @@ func GetVersusSession(db *sql.DB, sessionID int) (*VersusSession, error) {
 	err := db.QueryRow(`
 		SELECT id, list_id, mode, total_comparisons, completed_comparisons,
 		       is_round_robin, current_round, finished
-		FROM versus_sessions WHERE id = ?
+		FROM versus_sessions WHERE id = $1
 	`, sessionID).Scan(
 		&s.ID, &s.ListID, &s.Mode, &s.TotalComparisons,
 		&s.CompletedComparisons, &s.IsRoundRobin, &s.CurrentRound, &s.Finished,
@@ -201,7 +206,7 @@ func GetNextDuel(db *sql.DB, sessionID int) (*VersusMatch, error) {
 		FROM versus_matches vm
 		JOIN list_items a ON vm.item_a_id = a.id
 		JOIN list_items b ON vm.item_b_id = b.id
-		WHERE vm.session_id = ? AND vm.winner_id IS NULL
+		WHERE vm.session_id = $1 AND vm.winner_id IS NULL
 		ORDER BY vm.match_order
 		LIMIT 1
 	`, sessionID).Scan(
@@ -229,7 +234,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 	// Fetch match data
 	var itemAID, itemBID int
 	err = tx.QueryRow(
-		"SELECT item_a_id, item_b_id FROM versus_matches WHERE id = ? AND session_id = ?",
+		"SELECT item_a_id, item_b_id FROM versus_matches WHERE id = $1 AND session_id = $2",
 		matchID, sessionID,
 	).Scan(&itemAID, &itemBID)
 	if err != nil {
@@ -244,7 +249,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 
 	// Record the winner
 	_, err = tx.Exec(
-		"UPDATE versus_matches SET winner_id = ? WHERE id = ?",
+		"UPDATE versus_matches SET winner_id = $1 WHERE id = $2",
 		winnerID, matchID,
 	)
 	if err != nil {
@@ -253,7 +258,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 
 	// Increment winner's win count
 	_, err = tx.Exec(
-		"UPDATE versus_standings SET wins = wins + 1 WHERE session_id = ? AND item_id = ?",
+		"UPDATE versus_standings SET wins = wins + 1 WHERE session_id = $1 AND item_id = $2",
 		sessionID, winnerID,
 	)
 	if err != nil {
@@ -262,7 +267,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 
 	// Increment loser's loss count
 	_, err = tx.Exec(
-		"UPDATE versus_standings SET losses = losses + 1 WHERE session_id = ? AND item_id = ?",
+		"UPDATE versus_standings SET losses = losses + 1 WHERE session_id = $1 AND item_id = $2",
 		sessionID, loserID,
 	)
 	if err != nil {
@@ -271,7 +276,7 @@ func RecordResult(db *sql.DB, sessionID, matchID, winnerID int) error {
 
 	// Increment completed comparisons counter
 	_, err = tx.Exec(
-		"UPDATE versus_sessions SET completed_comparisons = completed_comparisons + 1 WHERE id = ?",
+		"UPDATE versus_sessions SET completed_comparisons = completed_comparisons + 1 WHERE id = $1",
 		sessionID,
 	)
 	if err != nil {
@@ -293,7 +298,7 @@ func GenerateNextRoundIfNeeded(db *sql.DB, sessionID int) (bool, error) {
 	if session.IsRoundRobin || session.Finished {
 		// Check if total comparisons reached
 		if session.CompletedComparisons >= session.TotalComparisons {
-			db.Exec("UPDATE versus_sessions SET finished = 1 WHERE id = ?", sessionID)
+			db.Exec("UPDATE versus_sessions SET finished = 1 WHERE id = $1", sessionID)
 			return true, nil
 		}
 		// In round-robin, check if any matches remain
@@ -302,7 +307,7 @@ func GenerateNextRoundIfNeeded(db *sql.DB, sessionID int) (bool, error) {
 			return false, err
 		}
 		if next == nil {
-			db.Exec("UPDATE versus_sessions SET finished = 1 WHERE id = ?", sessionID)
+			db.Exec("UPDATE versus_sessions SET finished = 1 WHERE id = $1", sessionID)
 			return true, nil
 		}
 		return false, nil
@@ -310,7 +315,7 @@ func GenerateNextRoundIfNeeded(db *sql.DB, sessionID int) (bool, error) {
 
 	// Check if total comparisons reached
 	if session.CompletedComparisons >= session.TotalComparisons {
-		db.Exec("UPDATE versus_sessions SET finished = 1 WHERE id = ?", sessionID)
+		db.Exec("UPDATE versus_sessions SET finished = 1 WHERE id = $1", sessionID)
 		return true, nil
 	}
 
@@ -334,7 +339,7 @@ func GenerateNextRoundIfNeeded(db *sql.DB, sessionID int) (bool, error) {
 
 	// Advance to the next round
 	_, err = db.Exec(
-		"UPDATE versus_sessions SET current_round = current_round + 1 WHERE id = ?",
+		"UPDATE versus_sessions SET current_round = current_round + 1 WHERE id = $1",
 		sessionID,
 	)
 	return false, err
@@ -358,7 +363,7 @@ func generateSwissRound(db *sql.DB, sessionID, roundNum, maxMatches int) error {
 	// Fetch the current highest match_order
 	var maxOrder int
 	db.QueryRow(
-		"SELECT COALESCE(MAX(match_order), 0) FROM versus_matches WHERE session_id = ?",
+		"SELECT COALESCE(MAX(match_order), 0) FROM versus_matches WHERE session_id = $1",
 		sessionID,
 	).Scan(&maxOrder)
 
@@ -402,7 +407,7 @@ func generateSwissRound(db *sql.DB, sessionID, roundNum, maxMatches int) error {
 			// Pair them!
 			_, err := tx.Exec(`
 				INSERT INTO versus_matches (session_id, round, item_a_id, item_b_id, match_order)
-				VALUES (?, ?, ?, ?, ?)
+				VALUES ($1, $2, $3, $4, $5)
 			`, sessionID, roundNum, standings[i].ItemID, standings[j].ItemID, order)
 			if err != nil {
 				return err
@@ -422,7 +427,7 @@ func generateSwissRound(db *sql.DB, sessionID, roundNum, maxMatches int) error {
 		for i := 0; i+1 < len(standings) && matchCount < maxInRound; i += 2 {
 			_, err := tx.Exec(`
 				INSERT INTO versus_matches (session_id, round, item_a_id, item_b_id, match_order)
-				VALUES (?, ?, ?, ?, ?)
+				VALUES ($1, $2, $3, $4, $5)
 			`, sessionID, roundNum, standings[i].ItemID, standings[i+1].ItemID, order)
 			if err != nil {
 				return err
@@ -446,7 +451,7 @@ func GetStandings(db *sql.DB, sessionID int) ([]VersusStanding, error) {
 		SELECT vs.session_id, vs.item_id, vs.wins, vs.losses, vs.buchholz, li.name
 		FROM versus_standings vs
 		JOIN list_items li ON vs.item_id = li.id
-		WHERE vs.session_id = ?
+		WHERE vs.session_id = $1
 		ORDER BY vs.wins DESC, vs.buchholz DESC
 	`, sessionID)
 	if err != nil {
@@ -473,7 +478,7 @@ func recalcBuchholz(db *sql.DB, sessionID int) error {
 	rows, err := db.Query(`
 		SELECT item_a_id, item_b_id, winner_id
 		FROM versus_matches
-		WHERE session_id = ? AND winner_id IS NOT NULL
+		WHERE session_id = $1 AND winner_id IS NOT NULL
 	`, sessionID)
 	if err != nil {
 		return err
@@ -499,7 +504,7 @@ func recalcBuchholz(db *sql.DB, sessionID int) error {
 	// Fetch win counts for each item
 	winsMap := make(map[int]int)
 	standingRows, err := db.Query(
-		"SELECT item_id, wins FROM versus_standings WHERE session_id = ?", sessionID,
+		"SELECT item_id, wins FROM versus_standings WHERE session_id = $1", sessionID,
 	)
 	if err != nil {
 		return err
@@ -521,7 +526,7 @@ func recalcBuchholz(db *sql.DB, sessionID int) error {
 			buchholz += float64(winsMap[oppID])
 		}
 		_, err := db.Exec(
-			"UPDATE versus_standings SET buchholz = ? WHERE session_id = ? AND item_id = ?",
+			"UPDATE versus_standings SET buchholz = $1 WHERE session_id = $2 AND item_id = $3",
 			buchholz, sessionID, itemID,
 		)
 		if err != nil {
@@ -536,7 +541,7 @@ func recalcBuchholz(db *sql.DB, sessionID int) error {
 // Returns a map of "smaller_ID-larger_ID" -> true.
 func getPlayedPairs(db *sql.DB, sessionID int) (map[string]bool, error) {
 	rows, err := db.Query(
-		"SELECT item_a_id, item_b_id FROM versus_matches WHERE session_id = ?",
+		"SELECT item_a_id, item_b_id FROM versus_matches WHERE session_id = $1",
 		sessionID,
 	)
 	if err != nil {
@@ -577,7 +582,7 @@ func UndoLastMatch(db *sql.DB, sessionID int) error {
 	err = tx.QueryRow(`
 		SELECT id, item_a_id, item_b_id, winner_id
 		FROM versus_matches
-		WHERE session_id = ? AND winner_id IS NOT NULL
+		WHERE session_id = $1 AND winner_id IS NOT NULL
 		ORDER BY match_order DESC
 		LIMIT 1
 	`, sessionID).Scan(&matchID, &itemAID, &itemBID, &winnerID)
@@ -592,21 +597,21 @@ func UndoLastMatch(db *sql.DB, sessionID int) error {
 	}
 
 	// Clear the match result
-	_, err = tx.Exec("UPDATE versus_matches SET winner_id = NULL WHERE id = ?", matchID)
+	_, err = tx.Exec("UPDATE versus_matches SET winner_id = NULL WHERE id = $1", matchID)
 	if err != nil {
 		return err
 	}
 
 	// Revert wins and losses
 	_, err = tx.Exec(
-		"UPDATE versus_standings SET wins = wins - 1 WHERE session_id = ? AND item_id = ?",
+		"UPDATE versus_standings SET wins = wins - 1 WHERE session_id = $1 AND item_id = $2",
 		sessionID, winnerID,
 	)
 	if err != nil {
 		return err
 	}
 	_, err = tx.Exec(
-		"UPDATE versus_standings SET losses = losses - 1 WHERE session_id = ? AND item_id = ?",
+		"UPDATE versus_standings SET losses = losses - 1 WHERE session_id = $1 AND item_id = $2",
 		sessionID, loserID,
 	)
 	if err != nil {
@@ -615,7 +620,7 @@ func UndoLastMatch(db *sql.DB, sessionID int) error {
 
 	// Decrement completed comparisons counter
 	_, err = tx.Exec(
-		"UPDATE versus_sessions SET completed_comparisons = completed_comparisons - 1, finished = 0 WHERE id = ?",
+		"UPDATE versus_sessions SET completed_comparisons = completed_comparisons - 1, finished = 0 WHERE id = $1",
 		sessionID,
 	)
 	if err != nil {

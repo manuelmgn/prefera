@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"prefera/internal/auth"
-	"prefera/internal/models"
+	"proj_listas/internal/auth"
+	"proj_listas/internal/models"
 )
 
 // ListCreate renders the form for creating a new list.
@@ -141,7 +141,7 @@ func (h *Handler) ListEdit(w http.ResponseWriter, r *http.Request) {
 	// CanEditItems: can edit description/link/image if no versus session has been completed
 	var completedSessions int
 	h.db.QueryRow(
-		"SELECT COUNT(*) FROM versus_sessions WHERE list_id = ? AND finished = 1",
+		"SELECT COUNT(*) FROM versus_sessions WHERE list_id = $1 AND finished = 1",
 		listID,
 	).Scan(&completedSessions)
 	canEditItems := completedSessions == 0

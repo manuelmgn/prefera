@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"prefera/internal/auth"
-	"prefera/internal/models"
+	"proj_listas/internal/auth"
+	"proj_listas/internal/models"
 )
 
 func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {

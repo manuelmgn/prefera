@@ -32,7 +32,17 @@ var globalLinkDB *linkDomainDB
 //	domain.com/
 //	other.org/
 func LoadLinkDomains(path string) error {
-	db, err := parseLinkDomains(path)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return LoadLinkDomainsBytes(data)
+}
+
+// LoadLinkDomainsBytes parses the domains file content and initialises the
+// global database. Used with go:embed so the file ships inside the binary.
+func LoadLinkDomainsBytes(data []byte) error {
+	db, err := parseLinkDomains(data)
 	if err != nil {
 		return err
 	}
@@ -40,17 +50,11 @@ func LoadLinkDomains(path string) error {
 	return nil
 }
 
-func parseLinkDomains(path string) (*linkDomainDB, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
+func parseLinkDomains(data []byte) (*linkDomainDB, error) {
 	var db linkDomainDB
 	var current *linkSection
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(strings.NewReader(string(data)))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {

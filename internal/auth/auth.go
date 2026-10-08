@@ -70,7 +70,7 @@ func (m *Manager) RequireAuth(next http.Handler) http.Handler {
 			       u.default_versus_mode, u.theme_preference
 			FROM sessions s
 			JOIN users u ON s.user_id = u.id
-			WHERE s.token = ? AND s.expires_at > ?
+			WHERE s.token = $1 AND s.expires_at > $2
 		`, cookie.Value, time.Now()).Scan(
 			&user.ID, &user.Username, &user.DisplayName, &user.IsAdmin,
 			&defaultPublic, &user.DefaultVersusMode, &user.ThemePreference,
@@ -102,7 +102,7 @@ func (m *Manager) CreateSession(w http.ResponseWriter, userID int) error {
 
 	expiresAt := time.Now().Add(30 * 24 * time.Hour)
 	_, err := m.db.Exec(
-		"INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
+		"INSERT INTO sessions (token, user_id, expires_at) VALUES ($1, $2, $3)",
 		token, userID, expiresAt,
 	)
 	if err != nil {
@@ -110,7 +110,7 @@ func (m *Manager) CreateSession(w http.ResponseWriter, userID int) error {
 	}
 
 	// Record last login timestamp
-	m.db.Exec("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", userID)
+	m.db.Exec("UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1", userID)
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
@@ -129,7 +129,7 @@ func (m *Manager) CreateSession(w http.ResponseWriter, userID int) error {
 func (m *Manager) DestroySession(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err == nil {
-		m.db.Exec("DELETE FROM sessions WHERE token = ?", cookie.Value)
+		m.db.Exec("DELETE FROM sessions WHERE token = $1", cookie.Value)
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name: "session", Value: "", Path: "/",
@@ -144,7 +144,7 @@ func (m *Manager) Authenticate(username, password string) *User {
 	var defaultPublic int
 
 	err := m.db.QueryRow(
-		"SELECT id, username, display_name, password_hash, is_admin, default_public, default_versus_mode, theme_preference FROM users WHERE username = ?",
+		"SELECT id, username, display_name, password_hash, is_admin, default_public, default_versus_mode, theme_preference FROM users WHERE username = $1",
 		username,
 	).Scan(&user.ID, &user.Username, &user.DisplayName, &passwordHash, &user.IsAdmin,
 		&defaultPublic, &user.DefaultVersusMode, &user.ThemePreference)
@@ -165,7 +165,7 @@ func (m *Manager) Authenticate(username, password string) *User {
 func (m *Manager) ChangePassword(userID int, currentPassword, newPassword string) error {
 	var passwordHash string
 	err := m.db.QueryRow(
-		"SELECT password_hash FROM users WHERE id = ?", userID,
+		"SELECT password_hash FROM users WHERE id = $1", userID,
 	).Scan(&passwordHash)
 	if err != nil {
 		return err
@@ -180,7 +180,7 @@ func (m *Manager) ChangePassword(userID int, currentPassword, newPassword string
 		return err
 	}
 
-	_, err = m.db.Exec("UPDATE users SET password_hash = ? WHERE id = ?", newHash, userID)
+	_, err = m.db.Exec("UPDATE users SET password_hash = $1 WHERE id = $2", newHash, userID)
 	return err
 }
 
@@ -197,7 +197,7 @@ func (m *Manager) UpdatePreferences(userID int, defaultPublic bool, defaultVersu
 		themePreference = "auto"
 	}
 	_, err := m.db.Exec(
-		"UPDATE users SET default_public = ?, default_versus_mode = ?, theme_preference = ? WHERE id = ?",
+		"UPDATE users SET default_public = $1, default_versus_mode = $2, theme_preference = $3 WHERE id = $4",
 		dp, defaultVersusMode, themePreference, userID,
 	)
 	return err
@@ -205,15 +205,15 @@ func (m *Manager) UpdatePreferences(userID int, defaultPublic bool, defaultVersu
 
 // UpdateDisplayName updates the user's public display name.
 func (m *Manager) UpdateDisplayName(userID int, displayName string) error {
-	_, err := m.db.Exec("UPDATE users SET display_name = ? WHERE id = ?", displayName, userID)
+	_, err := m.db.Exec("UPDATE users SET display_name = $1 WHERE id = $2", displayName, userID)
 	return err
 }
 
 // CleanExpiredSessions deletes expired sessions and old failed login attempts.
 func (m *Manager) CleanExpiredSessions() {
-	m.db.Exec("DELETE FROM sessions WHERE expires_at < ?", time.Now())
+	m.db.Exec("DELETE FROM sessions WHERE expires_at < $1", time.Now())
 	// Remove login attempts older than 2 hours
-	m.db.Exec("DELETE FROM login_attempts WHERE attempted_at < ?", time.Now().Add(-2*time.Hour))
+	m.db.Exec("DELETE FROM login_attempts WHERE attempted_at < $1", time.Now().Add(-2*time.Hour))
 }
 
 // IsLoginBlocked returns true if the user is blocked due to too many failed attempts.
@@ -223,7 +223,7 @@ func (m *Manager) IsLoginBlocked(username, ip string) (bool, int) {
 	var count int
 	// Count failed attempts in the last 60 minutes for this username OR IP
 	err := m.db.QueryRow(
-		"SELECT COUNT(*) FROM login_attempts WHERE (username = ? OR ip_address = ?) AND attempted_at > ?",
+		"SELECT COUNT(*) FROM login_attempts WHERE (username = $1 OR ip_address = $2) AND attempted_at > $3",
 		username, ip, cutoff,
 	).Scan(&count)
 	if err != nil {
@@ -235,12 +235,12 @@ func (m *Manager) IsLoginBlocked(username, ip string) (bool, int) {
 // RecordFailedLogin records a failed login attempt.
 func (m *Manager) RecordFailedLogin(username, ip string) {
 	m.db.Exec(
-		"INSERT INTO login_attempts (username, ip_address) VALUES (?, ?)",
+		"INSERT INTO login_attempts (username, ip_address) VALUES ($1, $2)",
 		username, ip,
 	)
 }
 
 // ClearLoginAttempts clears failed attempts after a successful login.
 func (m *Manager) ClearLoginAttempts(username, ip string) {
-	m.db.Exec("DELETE FROM login_attempts WHERE username = ? OR ip_address = ?", username, ip)
+	m.db.Exec("DELETE FROM login_attempts WHERE username = $1 OR ip_address = $2", username, ip)
 }

@@ -1,25 +1,26 @@
-# Docker Compose for prefera
-# Stack: Projects | Container: prefera
+# Docker Compose for proj_listas
+# Stack: Projects | Container: proj_listas
 # Port: 7010
 
 services:
-  prefera:
+  proj_listas:
     build: .
-    container_name: prefera
+    container_name: proj_listas
     ports:
-      - "${port}:${port}"
+      - "7010:7010"
     volumes:
-      # Volume to persist SQLite database
-      - ./config/link_domains.txt:/app/config/link_domains.txt
+      # Persist the local SQLite database
       - ./data:/app/data
+      # Optional: override the embedded allowed-link domains file
+      - ./dominios.txt:/app/dominios.txt
     environment:
       - DB_PATH=/app/data/listas.db
-      - DOMAINS_PATH=/app/config/link_domains.txt
+      - DOMAINS_PATH=/app/dominios.txt
     networks:
-      - ${network}
+      - truerat_public
     restart: unless-stopped
-    mem_limit: ${mem_limit}
-    memswap_limit: ${mem_limit}
+    mem_limit: 256m
+    memswap_limit: 512m
 networks:
   truerat_public:
     external: true
