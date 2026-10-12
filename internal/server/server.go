@@ -150,7 +150,7 @@ func NewRouter(database *sql.DB) (http.Handler, error) {
 		r.Post("/collective/{id}/access", h.CollectiveAddAccess)
 		r.Delete("/collective/{id}/access/{userId}", h.CollectiveRemoveAccess)
 
-		// Image upload (IMGBB proxy)
+		// Image upload (catbox.moe proxy)
 		r.Post("/api/upload-image", h.UploadImage)
 
 		// User autocomplete (for sharing private collective lists)
