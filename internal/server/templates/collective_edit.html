@@ -150,34 +150,14 @@
                 <div class="space-y-2.5">
                     <!-- Descriçom -->
                     <div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Descriçom</label>
-                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
-                                <button type="button"
-                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
-                                        class="w-4 h-4 rounded-full bg-gray-400/10 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
-                                <span x-show="open" x-transition
-                                      class="absolute bottom-full left-0 mb-2 w-56 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
-                                      style="display: none;">Descriçom breve. Máximo 100 palavras</span>
-                            </span>
-                        </div>
+                        {{template "item_label_description"}}
                         <textarea name="description" rows="1" maxlength="600"
                                   class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 resize-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all">{{.Description}}</textarea>
                     </div>
 
                     <!-- Ligaçom -->
                     <div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Ligaçom</label>
-                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
-                                <button type="button"
-                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
-                                        class="w-4 h-4 rounded-full bg-gray-400/10 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
-                                <span x-show="open" x-transition
-                                      class="absolute bottom-full left-0 mb-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
-                                      style="display: none;">Só se permitem ligaçons de determinadas webs, como Wikipedia, YouTube, Spotify ou redes sociais.</span>
-                            </span>
-                        </div>
+                        {{template "item_label_link"}}
                         <input type="url" name="link" x-model="linkVal" maxlength="500" @input="validateLink()"
                                class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
                                :class="linkVal && !linkValid ? 'border-red-400 dark:border-red-500' : ''">
@@ -186,19 +166,9 @@
 
                     <!-- Imagem -->
                     <div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Imagem</label>
-                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
-                                <button type="button"
-                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
-                                        class="w-4 h-4 rounded-full bg-gray-400/10 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
-                                <span x-show="open" x-transition
-                                      class="absolute bottom-full left-0 mb-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
-                                      style="display: none;">Podes pegar a URL de uma imagem ou subir uma desde o teu dispositivo. As imagens ficam alojadas num servidor externo público.</span>
-                            </span>
-                        </div>
+                        {{template "item_label_image"}}
                         <div class="flex gap-2 mt-1">
-                            <input type="url" name="image" x-model="imageVal" maxlength="500"
+                            <input type="url" name="image" x-model="imageVal" maxlength="500" @input="validateImage()"
                                    class="flex-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
                                    placeholder="URL da imagem">
                             <label class="relative cursor-pointer shrink-0">
@@ -211,8 +181,9 @@
                             </label>
                         </div>
                         <p x-show="uploadError" class="text-[10px] text-red-500 mt-1" x-text="uploadError"></p>
+                        <p x-show="imageError" class="text-[10px] text-red-500 mt-1" x-text="imageError"></p>
                         <div x-show="imageVal" class="mt-2 relative inline-block">
-                            <img :src="imageVal" alt="" class="h-16 w-auto rounded-lg object-cover border border-gray-200/60 dark:border-white/10" @error="imageVal=''">
+                            <img :src="imageVal" alt="" class="h-16 w-auto rounded-lg object-cover border border-gray-200/60 dark:border-white/10" @error="onImageLoadError()">
                             <button type="button" @click="imageVal=''; autosaveForm($el.closest('form'))" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">&times;</button>
                         </div>
                     </div>
@@ -339,45 +310,5 @@ function collectiveSettings(cfg) {
     };
 }
 
-function itemDetailsForm(initialLink, initialImage) {
-    return {
-        linkVal: initialLink,
-        imageVal: initialImage,
-        linkValid: true,
-        uploading: false,
-        uploadError: '',
-        init() {
-            this.validateLink();
-        },
-        validateLink() {
-            if (!this.linkVal) { this.linkValid = true; return; }
-            const lower = this.linkVal.toLowerCase();
-            this.linkValid = _allowedPatterns.some(p => lower.includes(p.toLowerCase()));
-        },
-        async uploadImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            this.uploading = true;
-            this.uploadError = '';
-            const formData = new FormData();
-            formData.append('image', file);
-            try {
-                const resp = await fetch('/api/upload-image', { method: 'POST', body: formData });
-                const data = await resp.json();
-                if (data.url) {
-                    this.imageVal = data.url;
-                    autosaveForm(this.$el);
-                } else {
-                    this.uploadError = data.error || 'Erro ao subir imagem';
-                }
-            } catch (e) {
-                this.uploadError = 'Erro de rede';
-            } finally {
-                this.uploading = false;
-                event.target.value = '';
-            }
-        }
-    };
-}
 </script>
 {{end}}

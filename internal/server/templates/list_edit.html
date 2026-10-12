@@ -61,34 +61,14 @@
                 <div class="space-y-2.5">
                     <!-- Descriçom -->
                     <div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Descriçom</label>
-                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
-                                <button type="button"
-                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
-                                        class="w-4 h-4 rounded-full bg-gray-400/10 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
-                                <span x-show="open" x-transition
-                                      class="absolute bottom-full left-0 mb-2 w-56 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
-                                      style="display: none;">Descriçom breve. Máximo 100 palavras</span>
-                            </span>
-                        </div>
+                        {{template "item_label_description"}}
                         <textarea name="description" rows="1" maxlength="600"
                                   class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 resize-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all">{{.Description}}</textarea>
                     </div>
 
                     <!-- Ligaçom -->
                     <div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Ligaçom</label>
-                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
-                                <button type="button"
-                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
-                                        class="w-4 h-4 rounded-full bg-gray-400/10 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
-                                <span x-show="open" x-transition
-                                      class="absolute bottom-full left-0 mb-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
-                                      style="display: none;">Só se permitem ligaçons de determinadas webs, como Wikipedia, YouTube, Spotify ou redes sociais.</span>
-                            </span>
-                        </div>
+                        {{template "item_label_link"}}
                         <input type="url" name="link" x-model="linkVal" maxlength="500" @input="validateLink()"
                                class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
                                :class="linkVal && !linkValid ? 'border-red-400 dark:border-red-500' : ''">
@@ -97,19 +77,9 @@
 
                     <!-- Imagem -->
                     <div>
-                        <div class="flex items-center gap-1.5">
-                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Imagem</label>
-                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
-                                <button type="button"
-                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
-                                        class="w-4 h-4 rounded-full bg-gray-400/10 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
-                                <span x-show="open" x-transition
-                                      class="absolute bottom-full left-0 mb-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
-                                      style="display: none;">Podes pegar a URL de uma imagem ou subir uma desde o teu dispositivo. As imagens ficam alojadas num servidor externo público.</span>
-                            </span>
-                        </div>
+                        {{template "item_label_image"}}
                         <div class="flex gap-2 mt-1">
-                            <input type="url" name="image" x-model="imageVal" maxlength="500"
+                            <input type="url" name="image" x-model="imageVal" maxlength="500" @input="validateImage()"
                                    class="flex-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
                                    placeholder="URL da imagem">
                             <!-- Botom upload compacto -->
@@ -123,9 +93,10 @@
                             </label>
                         </div>
                         <p x-show="uploadError" class="text-[10px] text-red-500 mt-1" x-text="uploadError"></p>
+                        <p x-show="imageError" class="text-[10px] text-red-500 mt-1" x-text="imageError"></p>
                         <!-- Image preview -->
                         <div x-show="imageVal" class="mt-2 relative inline-block">
-                            <img :src="imageVal" alt="" class="h-16 w-auto rounded-lg object-cover border border-gray-200/60 dark:border-white/10" @error="imageVal=''">
+                            <img :src="imageVal" alt="" class="h-16 w-auto rounded-lg object-cover border border-gray-200/60 dark:border-white/10" @error="onImageLoadError()">
                             <button type="button" @click="imageVal=''; autosaveForm($el.closest('form'))" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">&times;</button>
                         </div>
                     </div>
@@ -154,7 +125,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </summary>
-        <div class="px-5 pb-5" x-data="{isPublic: {{if .List.IsPublic}}true{{else}}false{{end}}, votePerm: {{if .List.IsPublic}}'all'{{else}}'link'{{end}}, hideItems: true}">
+        <div class="px-5 pb-5" x-data="{mode: {{if .List.IsPublic}}'public'{{else}}'private'{{end}}, hideItems: true}">
             <p class="text-xs text-gray-400 dark:text-gray-500 mb-2 leading-relaxed">
                 Converte esta lista numa <strong class="text-gray-600 dark:text-gray-300">lista coletiva</strong> que outras pessoas podem ranquear.
                 Receberás um link de partilha para convidar participantes.
@@ -164,59 +135,49 @@
             </p>
 
             <!-- Visibilidade -->
-            <div class="flex items-center justify-between py-3 mb-3 cursor-pointer" @click="isPublic = !isPublic; if(!isPublic) votePerm = 'link'">
-                <div>
-                    <span class="text-[14px] font-medium text-gray-800 dark:text-gray-200">Lista pública</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Visível para todes es utilizadores</span>
-                </div>
-                <div class="relative shrink-0 ml-3">
-                    <div :class="isPublic ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'"
-                         class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
-                        <div :class="isPublic ? 'translate-x-[20px]' : 'translate-x-0'"
-                             class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
-                    </div>
-                </div>
+            <span class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Visibilidade</span>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button type="button" @click="mode = 'public'"
+                        :class="mode === 'public' ? 'border-teal-400 dark:border-teal-500 bg-teal-50/80 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                        class="flex flex-col items-center gap-1.5 py-3.5 rounded-2xl border-2 transition-all duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.74 3.75M12 3a8.997 8.997 0 00-7.74 3.75m0 0A8.965 8.965 0 0112 12.75a8.965 8.965 0 017.74-3.75"/>
+                    </svg>
+                    <span class="text-[13px] font-semibold">Pública</span>
+                </button>
+                <button type="button" @click="mode = 'private'"
+                        :class="mode === 'private' ? 'border-teal-400 dark:border-teal-500 bg-teal-50/80 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                        class="flex flex-col items-center gap-1.5 py-3.5 rounded-2xl border-2 transition-all duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+                    </svg>
+                    <span class="text-[13px] font-semibold">Privada</span>
+                </button>
             </div>
 
-            <!-- Permissom de voto -->
+            <!-- Elementos surpresa -->
             <div class="mb-4">
-                <div class="mb-2">
-                    <span class="text-[14px] font-medium text-gray-800 dark:text-gray-200">Permissom de voto</span>
-                    <span class="text-xs text-amber-500 dark:text-amber-400 block mt-0.5" x-show="!isPublic">Listas privadas só permitem voto por link</span>
-                </div>
-                <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-xl p-1 gap-1" :class="!isPublic ? 'opacity-50 pointer-events-none' : ''">
-                    <button type="button" @click="if(isPublic) votePerm = 'all'"
-                            :class="votePerm === 'all' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
-                            class="flex-1 py-2 rounded-[10px] text-sm transition-all duration-200 text-center">
-                        Todos
+                <span class="relative inline-flex" x-data="tooltip()">
+                    <button type="button"
+                            @click="hideItems = !hideItems; flash()"
+                            @mouseenter="show()" @mouseleave="hide()"
+                            :class="hideItems ? 'border-amber-400 dark:border-amber-500 bg-amber-50/80 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                            class="flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 transition-all duration-200">
+                        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+                        </svg>
+                        <span class="text-[13px] font-semibold">Elementos surpresa</span>
                     </button>
-                    <button type="button" @click="votePerm = 'link'"
-                            :class="votePerm === 'link' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
-                            class="flex-1 py-2 rounded-[10px] text-sm transition-all duration-200 text-center">
-                        Só com link
-                    </button>
-                </div>
-            </div>
-
-            <!-- Ocultar elementos -->
-            <div class="flex items-center justify-between py-3 mb-4 cursor-pointer" @click="hideItems = !hideItems">
-                <div>
-                    <span class="text-[14px] font-medium text-gray-800 dark:text-gray-200">Elementos surpresa</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Participantes só vem os elementos ao votar</span>
-                </div>
-                <div class="relative shrink-0 ml-3">
-                    <div :class="hideItems ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'"
-                         class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
-                        <div :class="hideItems ? 'translate-x-[20px]' : 'translate-x-0'"
-                             class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
-                    </div>
-                </div>
+                    <span x-show="open" x-transition
+                          class="absolute bottom-full left-0 mb-2 w-56 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
+                          style="display: none;">Os elementos nom se vem antes de votar</span>
+                </span>
             </div>
 
             <form method="POST" action="/lists/{{.List.ID}}/convert-to-collective"
                   onsubmit="return confirm('Converter esta lista em coletiva? A lista individual será substituída.')">
-                <input type="hidden" name="is_public" :value="isPublic ? 'on' : ''">
-                <input type="hidden" name="vote_permission" :value="votePerm">
+                <input type="hidden" name="is_public" :value="mode === 'public' ? 'on' : ''">
+                <input type="hidden" name="vote_permission" :value="mode === 'public' ? 'all' : 'link'">
                 <input type="hidden" name="hide_items" :value="hideItems ? 'on' : ''">
                 <button type="submit"
                         class="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-teal-500/20 transition-all duration-300 active:scale-[0.98]">
@@ -245,45 +206,5 @@
 
 <script>
 const _allowedPatterns = {{.AllowedPatterns}};
-function itemDetailsForm(initialLink, initialImage) {
-    return {
-        linkVal: initialLink,
-        imageVal: initialImage,
-        linkValid: true,
-        uploading: false,
-        uploadError: '',
-        init() {
-            this.validateLink();
-        },
-        validateLink() {
-            if (!this.linkVal) { this.linkValid = true; return; }
-            const lower = this.linkVal.toLowerCase();
-            this.linkValid = _allowedPatterns.some(p => lower.includes(p.toLowerCase()));
-        },
-        async uploadImage(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            this.uploading = true;
-            this.uploadError = '';
-            const formData = new FormData();
-            formData.append('image', file);
-            try {
-                const resp = await fetch('/api/upload-image', { method: 'POST', body: formData });
-                const data = await resp.json();
-                if (data.url) {
-                    this.imageVal = data.url;
-                    autosaveForm(this.$el);
-                } else {
-                    this.uploadError = data.error || 'Erro ao subir imagem';
-                }
-            } catch (e) {
-                this.uploadError = 'Erro de rede';
-            } finally {
-                this.uploading = false;
-                event.target.value = '';
-            }
-        }
-    };
-}
 </script>
 {{end}}

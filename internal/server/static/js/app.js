@@ -196,3 +196,166 @@ function tooltip() {
         }
     };
 }
+
+// --- Alpine components compartidos -------------------------------------------
+
+// imageUploader handles the IMGBB upload for an item's image field.
+// Usage: x-data="imageUploader(item)" inside an Alpine scope where `item`
+// has an `image` property (e.g. an item in a x-for loop).
+// imageLooksOk reports whether a URL looks like an image link
+// (same rules as the server-side ValidateImageURL).
+function imageLooksOk(v) {
+    const lower = (v || '').trim().toLowerCase();
+    return lower.includes('i.ibb.co/') || lower.includes('ibb.co/') ||
+        /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)(\?|#|$)/.test(lower);
+}
+
+function imageUploader(item) {
+    const maxSize = 10 * 1024 * 1024; // 10 MB, o mesmo límite ca no servidor
+    return {
+        uploading: false,
+        uploadError: '',
+        imageError: '',
+        validateImageUrl() {
+            const v = (item.image || '').trim();
+            if (!v) { this.imageError = ''; return; }
+            if (!/^https?:\/\//i.test(v)) {
+                this.imageError = 'A URL da imaxe debe começar por http:// ou https://.';
+                return;
+            }
+            const ok = imageLooksOk(v);
+            this.imageError = ok ? '' : 'Esa URL nom parece dunha imaxe. Usa un enlace que remate en .jpg, .png, .gif ou .webp, ou sube a imaxe desde o teu dispositivo.';
+        },
+        onImageLoadError() {
+            const v = (item.image || '').trim();
+            if (!v) return; // src baleiro: o propio reset dispara error, ignorar
+            item.image = '';
+            this.imageError = imageLooksOk(v)
+                ? 'Non se puido cargar a imaxe desde esa URL. Verifica que o enlace sexa correcto ou sube a imaxe desde o teu dispositivo.'
+                : 'Esa URL nom parece dunha imaxe. Usa un enlace que remate en .jpg, .png, .gif ou .webp, ou sube a imaxe desde o teu dispositivo.';
+        },
+        async doUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                this.uploadError = 'O ficheiro seleccionado nom é unha imaxe' +
+                    (file.type ? ` (tipo «${file.type}»)` : '') +
+                    '. Escolle un ficheiro JPG, PNG, GIF ou WebP.';
+                event.target.value = '';
+                return;
+            }
+            if (file.size > maxSize) {
+                this.uploadError = `A imaxe é demasiado grande (${Math.round(file.size / 1048576)} MB; máx. 10 MB). Reduce o tamaño e tenta de novo.`;
+                event.target.value = '';
+                return;
+            }
+            this.uploading = true;
+            this.uploadError = '';
+            const fd = new FormData();
+            fd.append('image', file);
+            try {
+                const r = await fetch('/api/upload-image', { method: 'POST', body: fd });
+                const d = await r.json();
+                if (r.ok && d.url) {
+                    item.image = d.url;
+                    this.imageError = '';
+                } else {
+                    this.uploadError = (d && d.error) || 'A imaxe nom se puido subir. Tenta de novo nuns segundos.';
+                }
+            } catch (e) {
+                this.uploadError = 'Non foi possível contactar co servidor. Verifica a tua conexom e tenta de novo.';
+            } finally {
+                this.uploading = false;
+                event.target.value = '';
+            }
+        }
+    };
+}
+
+// linkValidator exposes a linkOk getter for an item's link field, checking
+// against _allowedPatterns (defined on pages with item link fields).
+// Usage: x-data="linkValidator(item)".
+function linkValidator(item) {
+    return {
+        get linkOk() {
+            return !item.link || _allowedPatterns.some(p => item.link.toLowerCase().includes(p.toLowerCase()));
+        }
+    };
+}
+
+// itemDetailsForm drives description/link/image editing for a single saved
+// item (used on the list edit pages). Requires _allowedPatterns.
+function itemDetailsForm(initialLink, initialImage) {
+    const maxSize = 10 * 1024 * 1024; // 10 MB, o mesmo límite ca no servidor
+    return {
+        linkVal: initialLink,
+        imageVal: initialImage,
+        linkValid: true,
+        imageError: '',
+        uploading: false,
+        uploadError: '',
+        init() {
+            this.validateLink();
+            this.validateImage();
+        },
+        validateLink() {
+            if (!this.linkVal) { this.linkValid = true; return; }
+            const lower = this.linkVal.toLowerCase();
+            this.linkValid = _allowedPatterns.some(p => lower.includes(p.toLowerCase()));
+        },
+        validateImage() {
+            const v = (this.imageVal || '').trim();
+            if (!v) { this.imageError = ''; return; }
+            if (!/^https?:\/\//i.test(v)) {
+                this.imageError = 'A URL da imaxe debe começar por http:// ou https://.';
+                return;
+            }
+            const ok = imageLooksOk(v);
+            this.imageError = ok ? '' : 'Esa URL nom parece dunha imaxe. Usa un enlace que remate en .jpg, .png, .gif ou .webp, ou sube a imaxe desde o teu dispositivo.';
+        },
+        onImageLoadError() {
+            const v = (this.imageVal || '').trim();
+            if (!v) return; // src baleiro: o propio reset dispara error, ignorar
+            this.imageVal = '';
+            this.imageError = imageLooksOk(v)
+                ? 'Non se puido cargar a imaxe desde esa URL. Verifica que o enlace sexa correcto ou sube a imaxe desde o teu dispositivo.'
+                : 'Esa URL nom parece dunha imaxe. Usa un enlace que remate en .jpg, .png, .gif ou .webp, ou sube a imaxe desde o teu dispositivo.';
+        },
+        async uploadImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                this.uploadError = 'O ficheiro seleccionado nom é unha imaxe' +
+                    (file.type ? ` (tipo «${file.type}»)` : '') +
+                    '. Escolle un ficheiro JPG, PNG, GIF ou WebP.';
+                event.target.value = '';
+                return;
+            }
+            if (file.size > maxSize) {
+                this.uploadError = `A imaxe é demasiado grande (${Math.round(file.size / 1048576)} MB; máx. 10 MB). Reduce o tamaño e tenta de novo.`;
+                event.target.value = '';
+                return;
+            }
+            this.uploading = true;
+            this.uploadError = '';
+            const formData = new FormData();
+            formData.append('image', file);
+            try {
+                const resp = await fetch('/api/upload-image', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (resp.ok && data.url) {
+                    this.imageVal = data.url;
+                    this.imageError = '';
+                    autosaveForm(this.$el);
+                } else {
+                    this.uploadError = (data && data.error) || 'A imaxe nom se puido subir. Tenta de novo nuns segundos.';
+                }
+            } catch (e) {
+                this.uploadError = 'Non foi possível contactar co servidor. Verifica a tua conexom e tenta de novo.';
+            } finally {
+                this.uploading = false;
+                event.target.value = '';
+            }
+        }
+    };
+}
