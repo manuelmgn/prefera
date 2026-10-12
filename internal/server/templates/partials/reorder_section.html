@@ -26,65 +26,71 @@
         </button>
     </div>
 
-    <div class="px-5 pb-5 pt-4 space-y-3">
+    <div class="px-5 pb-5 pt-3">
         {{if not .HideItems}}
         <!-- Orde manual -->
         <div x-show="tab === 'manual'" x-transition>
-            <div class="ios-card rounded-xl p-4 border border-gray-100/60 dark:border-white/5">
-                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Orde manual</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Arrasta os elementos para ordená-los</p>
-                <div class="space-y-1.5" id="{{if .Collective}}collective-sortable{{else}}sortable-items{{end}}"
-                     {{if .Autosave}}data-autosave-order="{{.List.ID}}"{{end}}>
-                    {{if .Collective}}
-                    {{range .Items}}
-                    <div class="sortable-item flex items-center gap-2.5 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/8 rounded-lg px-3 py-2.5 border border-gray-100/60 dark:border-white/5 cursor-grab active:cursor-grabbing transition-colors"
-                         data-id="{{.ID}}">
-                        <span class="drag-handle text-gray-300 dark:text-gray-600 text-base select-none">&#10495;</span>
-                        <span class="rank-number w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0
-                            {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900 shadow-sm
-                            {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600 shadow-sm
-                            {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm
-                            {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">{{.Position}}</span>
-                        <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">{{.Name}}</span>
-                    </div>
-                    {{end}}
-                    {{else}}
-                    {{range .List.Items}}
-                    <li class="sortable-item flex items-center gap-3 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/8 rounded-xl px-4 py-3.5 border border-gray-100/60 dark:border-white/5 cursor-grab active:cursor-grabbing transition-colors list-none"
-                        data-id="{{.ID}}">
-                        <span class="drag-handle text-gray-300 dark:text-gray-600 text-lg select-none">&#10495;</span>
-                        <span class="rank-number w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0
-                            {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900 shadow-sm
-                            {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600 shadow-sm
-                            {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm
-                            {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">{{.Position}}</span>
-                        <span class="text-[15px] text-gray-700 dark:text-gray-300 font-medium">{{.Name}}</span>
-                    </li>
-                    {{end}}
-                    {{end}}
-                </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Arrasta os elementos para ordená-los</p>
+            <div class="space-y-1.5" id="{{if .Collective}}collective-sortable{{else}}sortable-items{{end}}"
+                 {{if .Autosave}}data-autosave-order="{{.List.ID}}"{{end}}>
                 {{if .Collective}}
-                <button onclick="saveCollectiveOrder({{.Collective.ID}})"
-                        class="w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
-                    Guardar a minha orde
-                </button>
-                {{else if not .Autosave}}
-                <button onclick="saveOrder({{.List.ID}})"
-                        class="btn-save-order w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
-                    Guardar orde
-                </button>
+                {{range .Items}}
+                <div class="sortable-item flex items-center gap-2.5 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/8 rounded-lg px-3 py-2.5 border border-gray-100/60 dark:border-white/5 cursor-grab active:cursor-grabbing transition-colors"
+                     data-id="{{.ID}}">
+                    <span class="drag-handle text-gray-300 dark:text-gray-600 text-base select-none">&#10495;</span>
+                    <span class="rank-number w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0
+                        {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900 shadow-sm
+                        {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600 shadow-sm
+                        {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm
+                        {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">{{.Position}}</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300 font-medium">{{.Name}}</span>
+                </div>
+                {{end}}
+                {{else}}
+                {{range .List.Items}}
+                <li class="sortable-item flex items-center gap-3 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/8 rounded-xl px-4 py-3.5 border border-gray-100/60 dark:border-white/5 cursor-grab active:cursor-grabbing transition-colors list-none"
+                    data-id="{{.ID}}">
+                    <span class="drag-handle text-gray-300 dark:text-gray-600 text-lg select-none">&#10495;</span>
+                    <span class="rank-number w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0
+                        {{if eq .Position 1}}bg-gradient-to-br from-yellow-300 to-amber-500 text-amber-900 shadow-sm
+                        {{else if eq .Position 2}}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-600 shadow-sm
+                        {{else if eq .Position 3}}bg-gradient-to-br from-orange-300 to-orange-500 text-white shadow-sm
+                        {{else}}bg-gray-100/80 dark:bg-white/10 text-gray-400{{end}}">{{.Position}}</span>
+                    <span class="text-[15px] text-gray-700 dark:text-gray-300 font-medium">{{.Name}}</span>
+                </li>
+                {{end}}
                 {{end}}
             </div>
+            {{if .Collective}}
+            <button onclick="saveCollectiveOrder({{.Collective.ID}})"
+                    class="w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
+                Guardar a minha orde
+            </button>
+            {{else if not .Autosave}}
+            <button onclick="saveOrder({{.List.ID}})"
+                    class="btn-save-order w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
+                Guardar orde
+            </button>
+            {{end}}
         </div>
         {{end}}
 
         <!-- Versus -->
         <div x-show="tab === 'versus'" x-transition>
-            <form method="POST" action="{{if .Collective}}/collective/{{.Collective.ID}}/versus{{else}}/lists/{{.List.ID}}/versus{{end}}" x-data="{mode: 'rapido'}" class="ios-card rounded-xl p-4 border border-gray-100/60 dark:border-white/5">
-                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Modo Versus</p>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Ordena mediante enfrentamentos 1 vs 1. {{if not .HideItems}}Podes reordenar manualmente depois.{{end}}</p>
+            <form method="POST" action="{{if .Collective}}/collective/{{.Collective.ID}}/versus{{else}}/lists/{{.List.ID}}/versus{{end}}" x-data="{mode: 'rapido'}">
+                <div class="flex items-start gap-1.5 mb-3">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">Ordena mediante enfrentamentos 1 vs 1.{{if not .HideItems}} Podes reordenar manualmente depois.{{end}}</p>
+                    <span class="relative inline-flex shrink-0 mt-0.5" x-data="tooltip()" @click.outside="hide()">
+                        <button type="button"
+                                @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
+                                class="w-4 h-4 rounded-full bg-gray-400/10 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
+                        <span x-show="open" x-transition
+                              class="absolute bottom-full left-0 mb-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
+                              style="display: none;">Rápido: menos perguntas, resultado menos exato. Detalhado: mais perguntas, resultado mais certeiro.{{if not .HideItems}} Podes reordenar manualmente depois.{{end}}</span>
+                    </span>
+                </div>
                 <input type="hidden" name="mode" :value="mode">
-                <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-lg p-1 gap-1 mb-2">
+                <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-lg p-1 gap-1 mb-3">
                     <button type="button" @click="mode = 'rapido'"
                             :class="mode === 'rapido' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
                             class="flex-1 py-2 rounded-md text-xs transition-all duration-200 text-center">
@@ -96,11 +102,6 @@
                         Detalhado
                     </button>
                 </div>
-                <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-3 leading-relaxed">
-                    <strong class="text-gray-500 dark:text-gray-400">Rápido:</strong> menos perguntas, resultado menos exato.
-                    <strong class="text-gray-500 dark:text-gray-400">Detalhado:</strong> mais perguntas, resultado mais certeiro.
-                    {{if not .HideItems}}Podes reordenar manualmente depois.{{end}}
-                </p>
                 <button type="submit"
                         class="w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98]">
                     Começar Versus
@@ -112,7 +113,7 @@
         <!-- Apagar os meus votos (dentro da secçom de reordenar, em colectivas) -->
         <form method="POST" action="/collective/{{.Collective.ID}}/delete-votes"
               onsubmit="return confirm('Tens a certeza? Os teus votos nesta lista serám apagados.')"
-              class="ios-card rounded-xl p-4 border border-red-100/60 dark:border-red-500/10">
+              class="ios-card rounded-xl p-4 border border-red-100/60 dark:border-red-500/10 mt-3">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Apagar os meus votos</p>
