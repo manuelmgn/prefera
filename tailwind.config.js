@@ -1,7 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 // Configuraçom do Tailwind para o CSS precompilado.
 // Cando se engadan clases novas nas plantillas ou en app.js, rexenerar o CSS:
-//   .tools/tailwindcss -c tailwind.config.js -o internal/server/static/css/app.css --minify
+//   .tools/tailwindcss build -i internal/server/static/css/input.css -c tailwind.config.js -o internal/server/static/css/app.css --minify
+// (input.css contén parches personalizados — non o sobrescribas co output)
 module.exports = {
     darkMode: 'class',
     content: [
