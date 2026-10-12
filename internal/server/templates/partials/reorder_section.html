@@ -1,33 +1,35 @@
 {{define "reorder_section"}}
-<!-- Reordenar elementos -->
-<div class="ios-card rounded-2xl overflow-hidden mb-5" x-data="{ open: false }">
-    <button @click="open = !open" class="w-full flex items-center justify-between px-5 py-4 group hover:bg-white/40 dark:hover:bg-white/5 transition">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-violet-100/80 dark:bg-violet-500/15 flex items-center justify-center">
-                <svg class="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
-                </svg>
-            </div>
-            <div class="text-left">
-                {{if .HideItems}}
-                <span class="text-[15px] font-semibold text-gray-800 dark:text-gray-200">Votar nesta lista</span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 block">Os elementos serám revelados no modo versus</span>
-                {{else}}
-                <span class="text-[15px] font-semibold text-gray-800 dark:text-gray-200">
-                    Reordenar elementos
-                </span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 block">Arrasta ou usa o modo versus</span>
-                {{end}}
-            </div>
-        </div>
-        <svg :class="open ? 'rotate-180' : ''" class="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
-    <div x-show="open" x-collapse>
-        <div class="px-5 pb-5 border-t border-gray-100/60 dark:border-white/5 pt-4 space-y-3">
-            {{if not .HideItems}}
-            <!-- Orde manual (oculta se hide_items) -->
+<!-- Reordenar / votar: selector de modo -->
+<div class="ios-card rounded-2xl overflow-hidden mb-5" x-data="{ tab: '{{if .HideItems}}versus{{else}}manual{{end}}' }">
+    <!-- Dous botóns pegados, a todo o ancho -->
+    <div class="flex px-5 pt-5">
+        {{if not .HideItems}}
+        <button type="button" @click="tab = 'manual'"
+                :class="tab === 'manual' ? 'bg-violet-50/80 dark:bg-violet-500/10 border-violet-300 dark:border-violet-500/40 text-violet-700 dark:text-violet-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                class="flex-1 flex items-center justify-center gap-2 py-3 rounded-l-2xl border-2 border-r-0 transition-all duration-200">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+            </svg>
+            <span class="text-[13px] font-semibold">Ordenar manualmente</span>
+        </button>
+        {{end}}
+        <button type="button" @click="tab = 'versus'"
+                :class="tab === 'versus' ? 'bg-violet-50/80 dark:bg-violet-500/10 border-violet-300 dark:border-violet-500/40 text-violet-700 dark:text-violet-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                class="flex-1 flex items-center justify-center gap-2 py-3 {{if .HideItems}}rounded-2xl{{else}}rounded-r-2xl{{end}} border-2 transition-all duration-200">
+            <!-- Logo da app en versiom monocroma (mesmas cores ca outro icono) -->
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor" fill-opacity="0.35"/>
+                <path d="M12 2h5a5 5 0 015 5v10a5 5 0 01-5 5h-5V2z" fill="currentColor" fill-opacity="0.65"/>
+                <path d="M10.2 12.4l2.3 2.3 4.3-4.8" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="text-[13px] font-semibold">Modo versus</span>
+        </button>
+    </div>
+
+    <div class="px-5 pb-5 pt-4 space-y-3">
+        {{if not .HideItems}}
+        <!-- Orde manual -->
+        <div x-show="tab === 'manual'" x-transition>
             <div class="ios-card rounded-xl p-4 border border-gray-100/60 dark:border-white/5">
                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Orde manual</p>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Arrasta os elementos para ordená-los</p>
@@ -73,11 +75,11 @@
                 </button>
                 {{end}}
             </div>
+        </div>
+        {{end}}
 
-            <!-- Versus -->
-            <div class="text-center text-xs text-gray-400 dark:text-gray-500 py-1">ou</div>
-            {{end}}
-
+        <!-- Versus -->
+        <div x-show="tab === 'versus'" x-transition>
             <form method="POST" action="{{if .Collective}}/collective/{{.Collective.ID}}/versus{{else}}/lists/{{.List.ID}}/versus{{end}}" x-data="{mode: 'rapido'}" class="ios-card rounded-xl p-4 border border-gray-100/60 dark:border-white/5">
                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Modo Versus</p>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Ordena mediante enfrentamentos 1 vs 1. {{if not .HideItems}}Podes reordenar manualmente depois.{{end}}</p>
@@ -104,25 +106,25 @@
                     Começar Versus
                 </button>
             </form>
-
-            {{if and .Collective .HasRanked}}
-            <!-- Apagar os meus votos (dentro da secçom de reordenar, em colectivas) -->
-            <form method="POST" action="/collective/{{.Collective.ID}}/delete-votes"
-                  onsubmit="return confirm('Tens a certeza? Os teus votos nesta lista serám apagados.')"
-                  class="ios-card rounded-xl p-4 border border-red-100/60 dark:border-red-500/10">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Apagar os meus votos</p>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Remove a tua votaçom desta lista</p>
-                    </div>
-                    <button type="submit"
-                            class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 text-sm font-semibold transition-colors shrink-0">
-                        Apagar
-                    </button>
-                </div>
-            </form>
-            {{end}}
         </div>
+
+        {{if and .Collective .HasRanked}}
+        <!-- Apagar os meus votos (dentro da secçom de reordenar, em colectivas) -->
+        <form method="POST" action="/collective/{{.Collective.ID}}/delete-votes"
+              onsubmit="return confirm('Tens a certeza? Os teus votos nesta lista serám apagados.')"
+              class="ios-card rounded-xl p-4 border border-red-100/60 dark:border-red-500/10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Apagar os meus votos</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Remove a tua votaçom desta lista</p>
+                </div>
+                <button type="submit"
+                        class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 text-sm font-semibold transition-colors shrink-0">
+                    Apagar
+                </button>
+            </div>
+        </form>
+        {{end}}
     </div>
 </div>
 {{end}}
