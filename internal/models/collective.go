@@ -537,17 +537,22 @@ func GetLatestCollectivesVisible(db *sql.DB, userID, limit int) ([]CollectiveLis
 	return lists, nil
 }
 
-// GetCollectivesVotedByUser retrieves all collective lists where the user has submitted a ranking.
+// GetCollectivesVotedByUser retrieves all collective lists created by the user
+// or where the user has submitted a ranking.
 func GetCollectivesVotedByUser(db *sql.DB, userID int) ([]CollectiveList, error) {
 	rows, err := db.Query(`
-		SELECT DISTINCT c.id, c.creator_id, c.name, c.description, c.share_code,
+		SELECT c.id, c.creator_id, c.name, c.description, c.share_code,
 		       c.is_public, c.vote_permission, c.hide_items, c.is_active, c.created_at,
 		       COALESCE(NULLIF(u.display_name,''), u.username),
 		       (SELECT COUNT(*) FROM collective_participants WHERE collective_id = c.id),
-		       (SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = c.id)
+		       (SELECT COUNT(DISTINCT user_id) FROM collective_rankings WHERE collective_id = c.id),
+		       CASE WHEN EXISTS(
+		           SELECT 1 FROM collective_rankings WHERE collective_id = c.id AND user_id = $1
+		       ) THEN 1 ELSE 0 END
 		FROM collective_lists c
 		JOIN users u ON c.creator_id = u.id
-		INNER JOIN collective_rankings cr ON c.id = cr.collective_id AND cr.user_id = $1
+		WHERE c.creator_id = $1
+		   OR EXISTS(SELECT 1 FROM collective_rankings WHERE collective_id = c.id AND user_id = $1)
 		ORDER BY c.created_at DESC
 	`, userID)
 	if err != nil {
@@ -558,15 +563,15 @@ func GetCollectivesVotedByUser(db *sql.DB, userID int) ([]CollectiveList, error)
 	var lists []CollectiveList
 	for rows.Next() {
 		var cl CollectiveList
-		var isPublicInt, hideItemsInt int
+		var isPublicInt, hideItemsInt, hasVotedInt int
 		if err := rows.Scan(&cl.ID, &cl.CreatorID, &cl.Name, &cl.Description,
 			&cl.ShareCode, &isPublicInt, &cl.VotePermission, &hideItemsInt, &cl.IsActive, &cl.CreatedAt,
-			&cl.CreatorName, &cl.Participants, &cl.Ranked); err != nil {
+			&cl.CreatorName, &cl.Participants, &cl.Ranked, &hasVotedInt); err != nil {
 			return nil, err
 		}
 		cl.IsPublic = isPublicInt == 1
 		cl.HideItems = hideItemsInt == 1
-		cl.HasVoted = true // by definition: this query only returns lists where the user has voted
+		cl.HasVoted = hasVotedInt == 1
 		lists = append(lists, cl)
 	}
 	return lists, nil

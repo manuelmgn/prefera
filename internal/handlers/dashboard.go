@@ -107,7 +107,7 @@ func (h *Handler) MyListsCollectivesPage(w http.ResponseWriter, r *http.Request)
 
 	h.renderPage(w, "my_lists_collectives", map[string]interface{}{
 		"User":             user,
-		"Title":            "Colectivas em que votei",
+		"Title":            "As minhas listas coletivas",
 		"VotedCollectives": votedCollectives,
 	})
 }
