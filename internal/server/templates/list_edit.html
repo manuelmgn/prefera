@@ -29,7 +29,6 @@
                     </div>
                 </div>
             </div>
-            <p class="text-[11px] text-gray-400 dark:text-gray-500" data-autosave-status>Gardado automaticamente</p>
         </div>
     </form>
 
@@ -44,7 +43,7 @@
                     </svg>
                 </div>
                 <div>
-                    <span>Detalhes dos elementos</span>
+                    <span>Elementos da lista</span>
                     <span class="text-xs text-gray-400 dark:text-gray-500 block font-normal">Descriçons, imagens e ligaçons</span>
                 </div>
             </div>
@@ -62,26 +61,53 @@
                 <div class="space-y-2.5">
                     <!-- Descriçom -->
                     <div>
-                        <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Descriçom</label>
-                        <textarea name="description" rows="2" maxlength="600"
-                                  class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 resize-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
-                                  placeholder="Descriçom breve (máx. 100 palavras)">{{.Description}}</textarea>
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Descriçom</label>
+                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
+                                <button type="button"
+                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
+                                        class="w-4 h-4 rounded-full bg-gray-400/20 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
+                                <span x-show="open" x-transition
+                                      class="absolute bottom-full left-0 mb-2 w-56 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
+                                      style="display: none;">Descriçom breve. Máximo 100 palavras</span>
+                            </span>
+                        </div>
+                        <textarea name="description" rows="1" maxlength="600"
+                                  class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 resize-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all">{{.Description}}</textarea>
                     </div>
 
                     <!-- Ligaçom -->
                     <div>
-                        <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Ligaçom</label>
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Ligaçom</label>
+                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
+                                <button type="button"
+                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
+                                        class="w-4 h-4 rounded-full bg-gray-400/20 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
+                                <span x-show="open" x-transition
+                                      class="absolute bottom-full left-0 mb-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
+                                      style="display: none;">Só se permitem ligaçons de determinadas webs, como Wikipedia, YouTube, Spotify ou redes sociais.</span>
+                            </span>
+                        </div>
                         <input type="url" name="link" x-model="linkVal" maxlength="500" @input="validateLink()"
                                class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
-                               :class="linkVal && !linkValid ? 'border-red-400 dark:border-red-500' : ''"
-                               placeholder="Só se permitem ligaçons de determinadas webs">
+                               :class="linkVal && !linkValid ? 'border-red-400 dark:border-red-500' : ''">
                         <p x-show="linkVal && !linkValid" class="text-[10px] text-red-500 mt-1">Ligaçom nom válida</p>
-                        <p x-show="!linkVal || linkValid" class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Wikipedia, YouTube, Spotify, redes sociais…</p>
                     </div>
 
                     <!-- Imagem -->
                     <div>
-                        <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Imagem</label>
+                        <div class="flex items-center gap-1.5">
+                            <label class="text-[11px] text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider">Imagem</label>
+                            <span class="relative inline-flex" x-data="tooltip()" @click.outside="hide()">
+                                <button type="button"
+                                        @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
+                                        class="w-4 h-4 rounded-full bg-gray-400/20 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
+                                <span x-show="open" x-transition
+                                      class="absolute bottom-full left-0 mb-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
+                                      style="display: none;">Podes pegar a URL de uma imagem ou subir uma desde o teu dispositivo. As imagens ficam alojadas num servidor externo público.</span>
+                            </span>
+                        </div>
                         <div class="flex gap-2 mt-1">
                             <input type="url" name="image" x-model="imageVal" maxlength="500"
                                    class="flex-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
@@ -89,14 +115,13 @@
                             <!-- Botom upload compacto -->
                             <label class="relative cursor-pointer shrink-0">
                                 <input type="file" accept="image/*" class="sr-only" @change="uploadImage($event)">
-                                <span class="flex items-center gap-1.5 px-3 py-2 bg-gray-100/80 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 rounded-xl text-[12px] font-medium text-gray-600 dark:text-gray-300 transition-colors whitespace-nowrap"
+                                <span class="flex items-center justify-center gap-1.5 w-24 px-3 py-2 bg-gray-100/80 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 rounded-xl text-[12px] font-medium text-gray-600 dark:text-gray-300 transition-colors whitespace-nowrap"
                                       :class="uploading ? 'opacity-60 pointer-events-none' : ''">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                                     <span x-text="uploading ? '…' : 'Subir'"></span>
                                 </span>
                             </label>
                         </div>
-                        <p class="text-[10px] text-gray-400/70 dark:text-gray-600 mt-1">As imagens ficam alojadas num servidor externo público.</p>
                         <p x-show="uploadError" class="text-[10px] text-red-500 mt-1" x-text="uploadError"></p>
                         <!-- Image preview -->
                         <div x-show="imageVal" class="mt-2 relative inline-block">

@@ -167,3 +167,32 @@ function showToast(message) {
         setTimeout(function() { toast.remove(); }, 300);
     }, 2500);
 }
+
+// --- Tooltip ----------------------------------------------------------------
+// Reusable Alpine component: x-data="tooltip()".
+// Trigger with @mouseenter="show()" @mouseleave="hide()" @click="toggle()",
+// or @click="flash()" to show briefly (e.g. alongside another click action).
+// The bubble is rendered next to the trigger inside a relative wrapper.
+
+function tooltip() {
+    return {
+        open: false,
+        _timer: null,
+        show() {
+            clearTimeout(this._timer);
+            this.open = true;
+        },
+        hide() {
+            clearTimeout(this._timer);
+            this.open = false;
+        },
+        toggle() {
+            if (this.open) { this.hide(); } else { this.show(); }
+        },
+        flash(ms) {
+            this.show();
+            var self = this;
+            this._timer = setTimeout(function() { self.open = false; }, ms || 2500);
+        }
+    };
+}
