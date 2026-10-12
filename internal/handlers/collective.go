@@ -174,6 +174,7 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 		"Items":         visibleItems,
 		"HideItems":     cl.HideItems && !hasRanked && cl.CreatorID != user.ID,
 		"CreatedAtDate": createdAtDate,
+		"StartClosed":   true,
 	})
 }
 

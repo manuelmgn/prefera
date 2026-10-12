@@ -136,36 +136,24 @@
     </div>
     {{end}}
 
-    <!-- 5a. Link de partilha (criador, antes de qualquer voto) -->
+    <!-- 5. Açons do criador: copiar link + editar -->
     {{if .IsCreator}}
-    {{if eq .Collective.Ranked 0}}
-    <div class="ios-card rounded-2xl p-5 mb-6" x-data="{ copied: false }">
-        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Link de partilha</span>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 mb-3">Partilha este link para convidar es participantes</p>
-        <div class="flex items-center gap-2">
-            <div class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100/60 dark:bg-white/5 text-gray-600 dark:text-gray-400 text-sm font-mono truncate">
-                <span x-text="window.location.origin + '/collective/join/{{.Collective.ShareCode}}'"></span>
-            </div>
-            <button @click="navigator.clipboard.writeText(window.location.origin + '/collective/join/{{.Collective.ShareCode}}'); copied = true; setTimeout(() => copied = false, 2000)"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 shrink-0"
-                    :class="copied ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-teal-500 hover:bg-teal-600 text-white'">
-                <span x-show="!copied">Copiar</span>
-                <span x-show="copied">Copiado!</span>
-            </button>
-        </div>
+    <div class="flex gap-3 mb-6">
+        <button type="button" onclick="copyShareLink('{{.Collective.ShareCode}}')"
+                class="flex-1 flex flex-col items-center justify-center gap-2.5 py-6 rounded-2xl border-2 border-gray-200/70 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.03] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-200 active:scale-[0.98]">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/>
+            </svg>
+            <span class="text-[13px] font-semibold text-center leading-tight px-2">Copiar link de partilha</span>
+        </button>
+        <a href="/collective/{{.Collective.ID}}/edit"
+           class="flex-1 flex flex-col items-center justify-center gap-2.5 py-6 rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 active:scale-[0.98]">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            <span class="text-[13px] font-semibold text-center leading-tight px-2">Editar lista coletiva</span>
+        </a>
     </div>
-    {{end}}
-    {{end}}
-
-    <!-- 5b. Edit button (creator only) -->
-    {{if .IsCreator}}
-    <a href="/collective/{{.Collective.ID}}/edit"
-       class="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98] mb-6">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-        </svg>
-        Editar lista coletiva
-    </a>
     {{end}}
 
     <a href="/" class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition">
@@ -175,6 +163,28 @@
 </div>
 
 <script>
+// copyShareLink copies the collective join link and shows the shared toast
+function copyShareLink(code) {
+    var url = window.location.origin + '/collective/join/' + code;
+    var done = function() { showToast('Link copiado!'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(function() { fallbackCopyLink(url, done); });
+    } else {
+        fallbackCopyLink(url, done);
+    }
+}
+
+function fallbackCopyLink(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { showToast('Nom foi possível copiar'); }
+    document.body.removeChild(ta);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     var el = document.getElementById('collective-sortable');
     if (el && typeof Sortable !== 'undefined') {
