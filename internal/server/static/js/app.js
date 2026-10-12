@@ -21,12 +21,11 @@ function markActiveTab() {
         var active =
             (tab === 'home' && path === '/') ||
             (tab === 'lists' && path.indexOf('/my-lists') === 0) ||
-            (tab === 'profile' && (path.indexOf('/settings') === 0 || path.indexOf('/password') === 0 || path.indexOf('/admin') === 0));
+            (tab === 'admin' && path.indexOf('/admin') === 0) ||
+            (tab === 'profile' && (path.indexOf('/settings') === 0 || path.indexOf('/password') === 0));
         if (active) {
             el.classList.remove('text-gray-400', 'dark:text-gray-500');
             el.classList.add('text-violet-600', 'dark:text-violet-400');
-            var img = el.querySelector('img');
-            if (img) img.classList.remove('grayscale', 'opacity-70');
         }
     });
 }
