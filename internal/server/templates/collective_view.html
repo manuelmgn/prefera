@@ -64,7 +64,7 @@
                     {{if .IsTied}}={{else}}{{.Position}}{{end}}
                 </span>
                 {{if .Image}}
-                <img src="{{.Image}}" alt="" class="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-200/60 dark:border-white/10">
+                <img src="{{.Image}}" alt="" loading="lazy" class="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-200/60 dark:border-white/10">
                 {{end}}
                 <div class="flex-1 min-w-0">
                     <span class="text-[15px] text-gray-700 dark:text-gray-300 font-medium">{{.Name}}</span>
@@ -224,9 +224,9 @@ function saveCollectiveOrder(collectiveID) {
         if (response.ok) {
             window.location.reload();
         } else {
-            alert('Erro ao gardar a orde');
+            showToast('Erro ao gardar a orde');
         }
-    }).catch(function() { alert('Erro de conexom'); });
+    }).catch(function() { showToast('Erro de rede. Tenta de novo.'); });
 }
 </script>
 {{end}}

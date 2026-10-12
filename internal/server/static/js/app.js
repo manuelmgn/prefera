@@ -105,10 +105,10 @@ function saveOrder(listID) {
                 }, 1500);
             }
         } else {
-            alert('Erro ao gardar a orde');
+            showToast('Erro ao gardar a orde');
         }
     }).catch(function() {
-        alert('Erro de conexom');
+        showToast('Erro de rede. Tenta de novo.');
     });
 }
 
@@ -133,7 +133,10 @@ function performAutosave(form) {
 // autosaveForm saves a form immediately (used by Alpine components after
 // changing bound hidden inputs, where no native input event fires).
 function autosaveForm(form) {
+    // Acepta o formulario ou calquera elemento dentro del
     if (!form) return;
+    if (form.tagName !== 'FORM') form = form.closest('form');
+    if (!form || form.tagName !== 'FORM') return;
     clearTimeout(form._autosaveTimer);
     performAutosave(form);
 }
