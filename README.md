@@ -22,6 +22,20 @@ go run .          # http://localhost:7010 (SQLite local, migra automática)
 
 Usuario admin inicial: `admin` / `admin` (cambia la contraseña al primer login).
 
+## CSS (Tailwind precompilado)
+
+Las plantillas no usan el CDN de Tailwind: el CSS está precompilado en
+`internal/server/static/css/app.css`. Al añadir clases nuevas en
+`internal/server/templates/` o `internal/server/static/js/app.js`, regenerar:
+
+```sh
+.tools/tailwindcss -c tailwind.config.js -o internal/server/static/css/app.css --minify
+```
+
+El binario standalone (`.tools/`, gitignored) se descarga de los
+[releases de Tailwind](https://github.com/tailwindlabs/tailwindcss/releases)
+(`tailwindcss-macos-arm64` para Apple Silicon).
+
 ## Vercel + Postgres
 
 1. Crear el proyecto y la base:

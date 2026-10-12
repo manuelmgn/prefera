@@ -6,8 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{if .Title}}{{.Title}} — {{end}}Listas</title>
     <link rel="icon" type="image/png" href="/static/favicon.png">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind precompilado (rexenerar con .tools/tailwindcss, ver tailwind.config.js) -->
+    <link rel="stylesheet" href="/static/css/app.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <script src="/static/vendor/htmx.min.js" defer></script>
     <script src="/static/vendor/alpine.min.js" defer></script>
@@ -22,21 +24,6 @@
         else dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (dark) document.documentElement.classList.add('dark');
     })();
-    </script>
-    <script>
-    tailwind.config = {
-        darkMode: 'class',
-        theme: {
-            extend: {
-                fontFamily: { sans: ['Inter', 'SF Pro Display', 'SF Pro Text', 'system-ui', '-apple-system', 'sans-serif'] },
-                colors: {
-                    gold: '#FFD700',
-                    silver: '#C0C0C0',
-                    bronze: '#CD7F32',
-                }
-            }
-        }
-    }
     </script>
     <style>
         /* iOS-inspired glassmorphism — light */
