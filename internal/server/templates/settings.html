@@ -20,7 +20,7 @@
     {{end}}
 
     <!-- Perfil e preferências -->
-    <form method="POST" action="/settings" x-data="{
+    <form method="POST" action="/settings" data-autosave data-autosave-toast="Gardado correctamente" x-data="{
         displayName: '{{.User.DisplayName}}',
         publicOn: {{if .User.DefaultPublic}}true{{else}}false{{end}},
         versusMode: '{{.User.DefaultVersusMode}}',
@@ -34,15 +34,19 @@
             </div>
             <div class="px-5 py-4 space-y-4">
                 <div>
-                    <label class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Username</label>
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Username</label>
+                        {{template "tooltip_help" "O nome de utilizadore nom pode ser alterado"}}
+                    </div>
                     <div class="mt-1.5 px-4 py-2.5 rounded-xl bg-gray-100/60 dark:bg-white/5 text-gray-500 dark:text-gray-400 text-sm">
                         {{.User.Username}}
                     </div>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 mt-1 block">O nome de utilizadore nom pode ser alterado</span>
                 </div>
                 <div>
-                    <label for="display_name" class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Nome público</label>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Visível nas listas públicas (se vazio, usa o nome de utilizadore)</span>
+                    <div class="flex items-center gap-1.5">
+                        <label for="display_name" class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Nome público</label>
+                        {{template "tooltip_help" "Visível nas listas públicas (se vazio, usa o nome de utilizadore)"}}
+                    </div>
                     <input type="text" id="display_name" name="display_name" x-model="displayName" maxlength="100"
                            class="mt-1.5 w-full px-4 py-2.5 rounded-xl bg-white/60 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 text-gray-800 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-400 transition placeholder:text-gray-300 dark:placeholder:text-gray-600"
                            placeholder="{{.User.Username}}">
@@ -58,23 +62,22 @@
             <div class="px-5 py-4">
                 <div class="mb-3">
                     <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Tema</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Escolhe o aspecto da aplicaçom</span>
                 </div>
                 <input type="hidden" name="theme_preference" :value="theme">
                 <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-xl p-1 gap-1">
-                    <button type="button" @click="theme = 'light'"
+                    <button type="button" @click="theme = 'light'; applyTheme('light'); $nextTick(() => autosaveForm($el))"
                             :class="theme === 'light' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
                             class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center flex items-center justify-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                         Claro
                     </button>
-                    <button type="button" @click="theme = 'dark'"
+                    <button type="button" @click="theme = 'dark'; applyTheme('dark'); $nextTick(() => autosaveForm($el))"
                             :class="theme === 'dark' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
                             class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center flex items-center justify-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
                         Escuro
                     </button>
-                    <button type="button" @click="theme = 'auto'"
+                    <button type="button" @click="theme = 'auto'; applyTheme('auto'); $nextTick(() => autosaveForm($el))"
                             :class="theme === 'auto' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
                             class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center flex items-center justify-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -91,7 +94,7 @@
             </div>
 
             <!-- Public lists by default -->
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100/60 dark:border-white/5 cursor-pointer" @click="publicOn = !publicOn">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100/60 dark:border-white/5 cursor-pointer" @click="publicOn = !publicOn; $nextTick(() => autosaveForm($el))">
                 <div>
                     <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Listas públicas</span>
                     <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">As novas listas serám públicas por defeito</span>
@@ -114,12 +117,12 @@
                 </div>
                 <input type="hidden" name="default_versus_mode" :value="versusMode">
                 <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-xl p-1 gap-1">
-                    <button type="button" @click="versusMode = 'rapido'"
+                    <button type="button" @click="versusMode = 'rapido'; $nextTick(() => autosaveForm($el))"
                             :class="versusMode === 'rapido' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
                             class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center">
                         Rápido
                     </button>
-                    <button type="button" @click="versusMode = 'detalhado'"
+                    <button type="button" @click="versusMode = 'detalhado'; $nextTick(() => autosaveForm($el))"
                             :class="versusMode === 'detalhado' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
                             class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center">
                         Detalhado
@@ -133,10 +136,6 @@
             </div>
         </div>
 
-        <button type="submit"
-                class="w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3.5 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98]">
-            Guardar preferências
-        </button>
     </form>
 
     <!-- Conta -->

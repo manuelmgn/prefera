@@ -118,6 +118,7 @@ function saveOrder(listID) {
 
 function performAutosave(form) {
     var status = form.querySelector('[data-autosave-status]');
+    var toastMsg = form.getAttribute('data-autosave-toast');
     if (status) status.textContent = 'A gardar…';
     fetch(form.action, {
         method: 'POST',
@@ -125,6 +126,7 @@ function performAutosave(form) {
         headers: { 'X-Autosave': '1' }
     }).then(function(resp) {
         if (status) status.textContent = resp.ok ? 'Gardado automaticamente' : 'Erro ao gardar';
+        if (toastMsg && resp.ok) showToast(toastMsg);
     }).catch(function() {
         if (status) status.textContent = 'Erro de rede';
     });
@@ -153,6 +155,14 @@ function initAutosaveForms() {
             form._autosaveTimer = setTimeout(function() { performAutosave(form); }, 150);
         });
     });
+}
+
+// applyTheme toggles the dark class right away when the user changes the
+// theme preference (same logic as the inline script in <head>).
+function applyTheme(pref) {
+    var dark = pref === 'dark' ||
+        (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.classList.toggle('dark', dark);
 }
 
 // --- Toast ------------------------------------------------------------------

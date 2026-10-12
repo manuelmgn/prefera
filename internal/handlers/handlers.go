@@ -173,8 +173,10 @@ func (h *Handler) SettingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // SettingsSubmit processes the user preferences form.
+// Autosave requests (X-Autosave header) get a bare 204/400 instead of a page render.
 func (h *Handler) SettingsSubmit(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
+	autosave := r.Header.Get("X-Autosave") != ""
 
 	displayName := SanitizeInput(r.FormValue("display_name"), MaxListNameLen)
 	defaultPublic := r.FormValue("default_public") != ""
@@ -182,6 +184,10 @@ func (h *Handler) SettingsSubmit(w http.ResponseWriter, r *http.Request) {
 	themePreference := r.FormValue("theme_preference")
 
 	if err := h.auth.UpdateDisplayName(user.ID, displayName); err != nil {
+		if autosave {
+			http.Error(w, "Erro ao gardar o nome público", http.StatusBadRequest)
+			return
+		}
 		h.renderPage(w, "settings", map[string]interface{}{
 			"User":  user,
 			"Title": "Ajustes",
@@ -191,6 +197,10 @@ func (h *Handler) SettingsSubmit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.auth.UpdatePreferences(user.ID, defaultPublic, defaultVersusMode, themePreference); err != nil {
+		if autosave {
+			http.Error(w, "Erro ao gardar preferências", http.StatusBadRequest)
+			return
+		}
 		h.renderPage(w, "settings", map[string]interface{}{
 			"User":  user,
 			"Title": "Ajustes",
@@ -199,6 +209,10 @@ func (h *Handler) SettingsSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if autosave {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	http.Redirect(w, r, "/settings?success=1", http.StatusSeeOther)
 }
 

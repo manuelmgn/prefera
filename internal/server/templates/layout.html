@@ -87,12 +87,12 @@
         }
         main > * { animation: fadeIn 0.4s ease-out; }
 
-        /* Toast notification */
+        /* Toast notification — mobile: top center; desktop (sm+): top right */
         .app-toast {
             position: fixed;
+            top: 1rem;
             left: 50%;
-            bottom: 6.5rem;
-            transform: translate(-50%, 1rem);
+            transform: translate(-50%, -1rem);
             z-index: 100;
             background: rgba(17, 17, 26, 0.92);
             color: #fff;
@@ -107,6 +107,10 @@
         }
         .dark .app-toast { background: rgba(255,255,255,0.14); backdrop-filter: blur(20px); }
         .app-toast-visible { opacity: 1; transform: translate(-50%, 0); }
+        @media (min-width: 640px) {
+            .app-toast { left: auto; right: 1rem; transform: translate(0, -1rem); }
+            .app-toast-visible { transform: translate(0, 0); }
+        }
     </style>
 </head>
 <body class="font-sans bg-gray-50/80 dark:bg-[#0e0e14] min-h-screen text-gray-800 dark:text-gray-200 antialiased">
