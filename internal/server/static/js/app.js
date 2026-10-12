@@ -1,4 +1,4 @@
-// app.js — minimal JavaScript for the Listas application
+// app.js — minimal JavaScript for the Prefera application
 // Uses SortableJS for drag-and-drop and fetch to persist the order
 
 // Initialise SortableJS when the page loads

@@ -167,7 +167,7 @@ func (h *Handler) SettingsPage(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	h.renderPage(w, "settings", map[string]interface{}{
 		"User":    user,
-		"Title":   "Configuraçom",
+		"Title":   "Ajustes",
 		"Success": r.URL.Query().Get("success"),
 	})
 }
@@ -184,7 +184,7 @@ func (h *Handler) SettingsSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := h.auth.UpdateDisplayName(user.ID, displayName); err != nil {
 		h.renderPage(w, "settings", map[string]interface{}{
 			"User":  user,
-			"Title": "Configuraçom",
+			"Title": "Ajustes",
 			"Error": "Erro ao gardar o nome público",
 		})
 		return
@@ -193,7 +193,7 @@ func (h *Handler) SettingsSubmit(w http.ResponseWriter, r *http.Request) {
 	if err := h.auth.UpdatePreferences(user.ID, defaultPublic, defaultVersusMode, themePreference); err != nil {
 		h.renderPage(w, "settings", map[string]interface{}{
 			"User":  user,
-			"Title": "Configuraçom",
+			"Title": "Ajustes",
 			"Error": "Erro ao gardar preferências",
 		})
 		return
