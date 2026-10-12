@@ -218,6 +218,65 @@ func HasUserRanked(db *sql.DB, collectiveID, userID int) (bool, error) {
 	return count > 0, err
 }
 
+// AccessUser represents a user granted direct access to a private collective list.
+type AccessUser struct {
+	ID          int
+	DisplayName string
+}
+
+// GetCollectiveAccess retrieves the users with direct access to a collective list.
+func GetCollectiveAccess(db *sql.DB, collectiveID int) ([]AccessUser, error) {
+	rows, err := db.Query(`
+		SELECT u.id, COALESCE(NULLIF(u.display_name,''), u.username)
+		FROM collective_access a
+		JOIN users u ON a.user_id = u.id
+		WHERE a.collective_id = $1
+		ORDER BY u.username
+	`, collectiveID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []AccessUser
+	for rows.Next() {
+		var u AccessUser
+		if err := rows.Scan(&u.ID, &u.DisplayName); err != nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+	return users, nil
+}
+
+// AddCollectiveAccess grants a user direct access to a collective list.
+func AddCollectiveAccess(db *sql.DB, collectiveID, userID int) error {
+	_, err := db.Exec(
+		"INSERT INTO collective_access (collective_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+		collectiveID, userID,
+	)
+	return err
+}
+
+// RemoveCollectiveAccess revokes a user's direct access to a collective list.
+func RemoveCollectiveAccess(db *sql.DB, collectiveID, userID int) error {
+	_, err := db.Exec(
+		"DELETE FROM collective_access WHERE collective_id = $1 AND user_id = $2",
+		collectiveID, userID,
+	)
+	return err
+}
+
+// HasCollectiveAccess checks whether a user has direct access to a collective list.
+func HasCollectiveAccess(db *sql.DB, collectiveID, userID int) (bool, error) {
+	var count int
+	err := db.QueryRow(
+		"SELECT COUNT(*) FROM collective_access WHERE collective_id = $1 AND user_id = $2",
+		collectiveID, userID,
+	).Scan(&count)
+	return count > 0, err
+}
+
 // CanUserVote checks whether a user is allowed to vote in a collective list.
 func CanUserVote(db *sql.DB, collectiveID, userID int) bool {
 	cl, err := GetCollectiveByID(db, collectiveID)
@@ -232,9 +291,13 @@ func CanUserVote(db *sql.DB, collectiveID, userID int) bool {
 	if cl.VotePermission == "all" {
 		return true
 	}
-	// "link": must be a participant (joined via share link)
+	// "link": must be a participant (joined via share link) or have direct access
 	isP, _ := IsParticipant(db, collectiveID, userID)
-	return isP
+	if isP {
+		return true
+	}
+	hasAccess, _ := HasCollectiveAccess(db, collectiveID, userID)
+	return hasAccess
 }
 
 // CanUserView checks whether a user is allowed to view a collective list.
@@ -247,9 +310,13 @@ func CanUserView(db *sql.DB, collectiveID, userID int) bool {
 	if cl.IsPublic {
 		return true
 	}
-	// Private lists: participants only
+	// Private lists: participants and users with direct access can view
 	isP, _ := IsParticipant(db, collectiveID, userID)
-	return isP
+	if isP {
+		return true
+	}
+	hasAccess, _ := HasCollectiveAccess(db, collectiveID, userID)
+	return hasAccess
 }
 
 // JoinCollective adds a user as a participant in a collective list.
@@ -537,8 +604,8 @@ func GetLatestCollectivesVisible(db *sql.DB, userID, limit int) ([]CollectiveLis
 	return lists, nil
 }
 
-// GetCollectivesVotedByUser retrieves all collective lists created by the user
-// or where the user has submitted a ranking.
+// GetCollectivesVotedByUser retrieves all collective lists created by the user,
+// shared directly with the user, or where the user has submitted a ranking.
 func GetCollectivesVotedByUser(db *sql.DB, userID int) ([]CollectiveList, error) {
 	rows, err := db.Query(`
 		SELECT c.id, c.creator_id, c.name, c.description, c.share_code,
@@ -553,6 +620,7 @@ func GetCollectivesVotedByUser(db *sql.DB, userID int) ([]CollectiveList, error)
 		JOIN users u ON c.creator_id = u.id
 		WHERE c.creator_id = $1
 		   OR EXISTS(SELECT 1 FROM collective_rankings WHERE collective_id = c.id AND user_id = $1)
+		   OR EXISTS(SELECT 1 FROM collective_access WHERE collective_id = c.id AND user_id = $1)
 		ORDER BY c.created_at DESC
 	`, userID)
 	if err != nil {

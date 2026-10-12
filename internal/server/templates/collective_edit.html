@@ -3,8 +3,10 @@
     <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Editar lista coletiva</h2>
     <p class="text-sm text-gray-400 dark:text-gray-500 mb-7">Configura a lista e as permissons</p>
 
-    <!-- Metadados -->
-    <form method="POST" action="/collective/{{.Collective.ID}}/update" class="ios-card rounded-2xl overflow-hidden mb-5">
+    <!-- Metadados + configuraçom (gardado automático) -->
+    <form method="POST" action="/collective/{{.Collective.ID}}/update" data-autosave
+          x-data="collectiveSettings({ mode: '{{.Mode}}', hideItems: {{if .Collective.HideItems}}true{{else}}false{{end}}, collectiveId: {{.Collective.ID}}, shareCode: '{{.Collective.ShareCode}}', shared: {{.AccessUsersJSON}} })"
+          class="ios-card rounded-2xl overflow-hidden mb-5">
         <div class="p-5 space-y-4">
             <div>
                 <label for="name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nome</label>
@@ -16,99 +18,93 @@
                 <textarea id="description" name="description" rows="2" maxlength="500"
                           class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200 resize-none">{{.Collective.Description}}</textarea>
             </div>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500" data-autosave-status>Gardado automaticamente</p>
         </div>
 
-        <!-- Visibilidade e permissons -->
-        <div x-data="{isPublic: {{if .Collective.IsPublic}}true{{else}}false{{end}}, votePerm: '{{.Collective.VotePermission}}', hideItems: {{if .Collective.HideItems}}true{{else}}false{{end}}}">
-            <!-- Visibilidade -->
-            <div class="flex items-center justify-between px-5 py-4 border-t border-gray-100/60 dark:border-white/5 cursor-pointer" @click="isPublic = !isPublic; if(!isPublic && votePerm === 'all') votePerm = 'link'">
-                <div>
-                    <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Lista pública</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Visível para todes es utilizadores</span>
-                </div>
-                <div class="relative shrink-0 ml-3">
-                    <input type="hidden" name="is_public" :value="isPublic ? 'on' : ''">
-                    <div :class="isPublic ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'"
-                         class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
-                        <div :class="isPublic ? 'translate-x-[20px]' : 'translate-x-0'"
-                             class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
+        <!-- Visibilidade -->
+        <div class="px-5 py-4 border-t border-gray-100/60 dark:border-white/5">
+            <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Visibilidade</span>
+            <div class="grid grid-cols-3 gap-2 mt-3">
+                <button type="button" @click="setMode('public')"
+                        :class="mode === 'public' ? 'border-teal-400 dark:border-teal-500 bg-teal-50/80 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                        class="flex flex-col items-center gap-1.5 py-3.5 rounded-2xl border-2 transition-all duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.74 3.75M12 3a8.997 8.997 0 00-7.74 3.75m0 0A8.965 8.965 0 0112 12.75a8.965 8.965 0 017.74-3.75"/>
+                    </svg>
+                    <span class="text-[13px] font-semibold">Pública</span>
+                </button>
+                <button type="button" @click="setMode('link')"
+                        :class="mode === 'link' ? 'border-teal-400 dark:border-teal-500 bg-teal-50/80 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                        class="flex flex-col items-center gap-1.5 py-3.5 rounded-2xl border-2 transition-all duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                    </svg>
+                    <span class="text-[13px] font-semibold">Link</span>
+                </button>
+                <button type="button" @click="setMode('private')"
+                        :class="mode === 'private' ? 'border-teal-400 dark:border-teal-500 bg-teal-50/80 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                        class="flex flex-col items-center gap-1.5 py-3.5 rounded-2xl border-2 transition-all duration-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+                    </svg>
+                    <span class="text-[13px] font-semibold">Privada</span>
+                </button>
+            </div>
+            <input type="hidden" name="is_public" :value="mode === 'public' ? 'on' : ''">
+            <input type="hidden" name="vote_permission" :value="mode === 'public' ? 'all' : 'link'">
+
+            <!-- Partilha con utilizadores (só no modo Privada) -->
+            <div x-show="mode === 'private'" x-transition class="mt-4">
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Partilhar com</label>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">Estas utilizadores poderám ver e votar</p>
+                <div class="relative">
+                    <input type="text" x-model="search" @input.debounce.300ms="doSearch()" @focus="doSearch()"
+                           placeholder="Procurar utilizadores…" autocomplete="off"
+                           class="w-full px-4 py-2.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all">
+                    <div x-show="results.length > 0"
+                         class="absolute left-0 right-0 top-full mt-1 rounded-xl glass border border-white/50 dark:border-white/10 shadow-lg overflow-hidden z-30">
+                        <template x-for="u in results" :key="u.id">
+                            <button type="button" @click="addUser(u)"
+                                    class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-white/10 transition-colors">
+                                <span class="w-6 h-6 rounded-full bg-violet-100/80 dark:bg-violet-500/15 flex items-center justify-center text-[10px] font-bold text-violet-600 dark:text-violet-400 shrink-0"
+                                      x-text="(u.display_name || u.username).charAt(0).toUpperCase()"></span>
+                                <span x-text="u.display_name || u.username"></span>
+                                <span class="text-xs text-gray-400" x-show="u.display_name" x-text="'@' + u.username"></span>
+                            </button>
+                        </template>
                     </div>
                 </div>
-            </div>
-
-            <!-- Permissom de voto -->
-            <div class="px-5 py-4 border-t border-gray-100/60 dark:border-white/5">
-                <div class="mb-3">
-                    <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Permissom de voto</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5" x-show="isPublic && votePerm !== 'closed'">Quem pode votar nesta lista</span>
-                    <span class="text-xs text-amber-500 dark:text-amber-400 block mt-0.5" x-show="!isPublic && votePerm !== 'closed'">Listas privadas só permitem voto por link</span>
-                    <span class="text-xs text-red-400 dark:text-red-400 block mt-0.5" x-show="votePerm === 'closed'">Ninguém pode votar — a lista está fechada</span>
-                </div>
-                <input type="hidden" name="vote_permission" :value="votePerm">
-                <input type="hidden" name="hide_items" :value="hideItems ? 'on' : ''">
-                <div class="flex bg-gray-100/80 dark:bg-white/5 rounded-xl p-1 gap-1">
-                    <button type="button" @click="if(isPublic) votePerm = 'all'"
-                            :class="[
-                                votePerm === 'all' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700',
-                                !isPublic ? 'opacity-40 pointer-events-none' : ''
-                            ]"
-                            class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center">
-                        Todos
-                    </button>
-                    <button type="button" @click="votePerm = 'link'"
-                            :class="votePerm === 'link' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
-                            class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center">
-                        Só com link
-                    </button>
-                    <button type="button" @click="votePerm = 'closed'"
-                            :class="votePerm === 'closed' ? 'bg-white dark:bg-white/10 shadow-sm text-gray-900 dark:text-white font-semibold' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'"
-                            class="flex-1 py-2.5 rounded-[10px] text-sm transition-all duration-200 text-center">
-                        Fechada
-                    </button>
-                </div>
-            </div>
-
-            <!-- Ocultar elementos -->
-            <div class="flex items-center justify-between px-5 py-4 border-t border-gray-100/60 dark:border-white/5 cursor-pointer" @click="hideItems = !hideItems">
-                <div>
-                    <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Elementos surpresa</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Es participantes só vem os elementos ao votar no modo versus</span>
-                </div>
-                <div class="relative shrink-0 ml-3">
-                    <div :class="hideItems ? 'bg-amber-500' : 'bg-gray-200 dark:bg-gray-600'"
-                         class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
-                        <div :class="hideItems ? 'translate-x-[20px]' : 'translate-x-0'"
-                             class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
-                    </div>
+                <div class="flex flex-wrap gap-2 mt-2.5" x-show="shared.length > 0">
+                    <template x-for="u in shared" :key="u.ID">
+                        <span class="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-violet-50/80 dark:bg-violet-500/10 border border-violet-100/60 dark:border-violet-500/20 text-[12px] font-medium text-violet-700 dark:text-violet-300">
+                            <span x-text="u.DisplayName"></span>
+                            <button type="button" @click="removeUser(u)" class="w-4 h-4 rounded-full text-violet-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center justify-center transition-colors" title="Remover">&times;</button>
+                        </span>
+                    </template>
                 </div>
             </div>
         </div>
 
-        <div class="px-5 pb-5">
-            <button type="submit"
-                    class="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-teal-500/20 transition-all duration-300 active:scale-[0.98]">
-                Guardar alteraçons
+        <!-- Elementos surpresa + Copiar link -->
+        <div class="flex items-center justify-between px-5 py-4 border-t border-gray-100/60 dark:border-white/5 gap-3">
+            <input type="hidden" name="hide_items" :value="hideItems ? 'on' : ''">
+            <button type="button" @click="toggleSurpresa()"
+                    :class="hideItems ? 'border-amber-400 dark:border-amber-500 bg-amber-50/80 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'"
+                    class="flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 transition-all duration-200 shrink-0">
+                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>
+                </svg>
+                <span class="text-[13px] font-semibold">Elementos surpresa</span>
+            </button>
+            <button type="button" @click="copyLink()"
+                    class="flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-violet-300 dark:hover:border-violet-500/40 hover:text-violet-600 dark:hover:text-violet-400 transition-all duration-200 shrink-0">
+                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"/>
+                </svg>
+                <span class="text-[13px] font-semibold">Copiar link</span>
             </button>
         </div>
     </form>
-
-    <!-- Link de partilha -->
-    <div class="ios-card rounded-2xl p-5 mb-5" x-data="{ copied: false }">
-        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Link de partilha</span>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 mb-3">Partilha este link para que outres participem</p>
-        <div class="flex items-center gap-2">
-            <div class="flex-1 px-4 py-2.5 rounded-xl bg-gray-100/60 dark:bg-white/5 text-gray-600 dark:text-gray-400 text-sm font-mono truncate"
-                 x-ref="linkText">
-                <span x-text="window.location.origin + '/collective/join/{{.Collective.ShareCode}}'"></span>
-            </div>
-            <button @click="navigator.clipboard.writeText(window.location.origin + '/collective/join/{{.Collective.ShareCode}}'); copied = true; setTimeout(() => copied = false, 2000)"
-                    class="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 shrink-0"
-                    :class="copied ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-teal-500 hover:bg-teal-600 text-white'">
-                <span x-show="!copied">Copiar</span>
-                <span x-show="copied">Copiado!</span>
-            </button>
-        </div>
-    </div>
 
     <!-- Item details (only if no votes yet) -->
     {{if .CanEditItems}}
@@ -133,6 +129,7 @@
             {{range .Items}}
             <form method="POST" action="/collective/{{$.Collective.ID}}/items/{{.ID}}/details"
                   x-data="itemDetailsForm('{{.Link}}', '{{.Image}}')"
+                  data-autosave
                   class="px-5 py-4">
                 <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{.Name}}</p>
                 <div class="space-y-2.5">
@@ -175,15 +172,9 @@
                         <p x-show="uploadError" class="text-[10px] text-red-500 mt-1" x-text="uploadError"></p>
                         <div x-show="imageVal" class="mt-2 relative inline-block">
                             <img :src="imageVal" alt="" class="h-16 w-auto rounded-lg object-cover border border-gray-200/60 dark:border-white/10" @error="imageVal=''">
-                            <button type="button" @click="imageVal=''" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">&times;</button>
+                            <button type="button" @click="imageVal=''; autosaveForm($el.closest('form'))" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">&times;</button>
                         </div>
                     </div>
-
-                    <button type="submit" :disabled="linkVal && !linkValid"
-                            :class="linkVal && !linkValid ? 'opacity-40 cursor-not-allowed' : ''"
-                            class="px-4 py-2 bg-gray-900 dark:bg-white/10 text-white rounded-xl text-xs font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors">
-                        Guardar
-                    </button>
                 </div>
             </form>
             {{end}}
@@ -231,6 +222,82 @@
 
 <script>
 const _allowedPatterns = {{.AllowedPatterns}};
+
+// collectiveSettings drives the visibility segmented control, the private
+// sharing autocomplete, the "elementos surpresa" toggle and the copy-link
+// button. Every change autosaves the surrounding form.
+function collectiveSettings(cfg) {
+    return {
+        mode: cfg.mode,
+        hideItems: cfg.hideItems,
+        shared: cfg.shared || [],
+        search: '',
+        results: [],
+        setMode(m) {
+            this.mode = m;
+            this.results = [];
+            this.$nextTick(() => autosaveForm(this.$el));
+        },
+        toggleSurpresa() {
+            this.hideItems = !this.hideItems;
+            this.$nextTick(() => autosaveForm(this.$el));
+        },
+        async doSearch() {
+            const q = this.search.trim();
+            if (q.length < 2) { this.results = []; return; }
+            try {
+                const resp = await fetch('/api/users/search?q=' + encodeURIComponent(q));
+                if (!resp.ok) { this.results = []; return; }
+                const users = await resp.json();
+                this.results = users.filter(u => !this.shared.some(s => s.ID === u.id));
+            } catch (e) {
+                this.results = [];
+            }
+        },
+        async addUser(u) {
+            const resp = await fetch('/collective/' + cfg.collectiveId + '/access', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'user_id=' + u.id
+            });
+            if (resp.ok) {
+                this.shared.push({ ID: u.id, DisplayName: u.display_name || u.username });
+                this.search = '';
+                this.results = [];
+            } else {
+                showToast('Erro ao partilhar');
+            }
+        },
+        async removeUser(u) {
+            const resp = await fetch('/collective/' + cfg.collectiveId + '/access/' + u.ID, { method: 'DELETE' });
+            if (resp.ok) {
+                this.shared = this.shared.filter(s => s.ID !== u.ID);
+            } else {
+                showToast('Erro ao remover');
+            }
+        },
+        copyLink() {
+            const url = window.location.origin + '/collective/join/' + cfg.shareCode;
+            const done = () => showToast('Link copiado!');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(done).catch(() => this._fallbackCopy(url, done));
+            } else {
+                this._fallbackCopy(url, done);
+            }
+        },
+        _fallbackCopy(text, done) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); done(); } catch (e) { showToast('Nom foi possível copiar'); }
+            document.body.removeChild(ta);
+        }
+    };
+}
+
 function itemDetailsForm(initialLink, initialImage) {
     return {
         linkVal: initialLink,
@@ -258,6 +325,7 @@ function itemDetailsForm(initialLink, initialImage) {
                 const data = await resp.json();
                 if (data.url) {
                     this.imageVal = data.url;
+                    autosaveForm(this.$el);
                 } else {
                     this.uploadError = data.error || 'Erro ao subir imagem';
                 }

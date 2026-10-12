@@ -147,6 +147,14 @@ func Migrate(database *sql.DB, isPostgres bool) error {
 		position INTEGER NOT NULL,
 		PRIMARY KEY (collective_id, user_id, item_id)
 	);
+
+	-- Direct access grants for private collective lists
+	-- Users listed here can view and vote even without the share link
+	CREATE TABLE IF NOT EXISTS collective_access (
+		collective_id INTEGER NOT NULL REFERENCES collective_lists(id) ON DELETE CASCADE,
+		user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		PRIMARY KEY (collective_id, user_id)
+	);
 	`
 
 	// Execute the schema

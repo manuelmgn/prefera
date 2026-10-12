@@ -147,9 +147,14 @@ func NewRouter(database *sql.DB) (http.Handler, error) {
 		r.Post("/collective/{id}/delete-votes", h.CollectiveDeleteVotes)
 		r.Post("/lists/{id}/convert-to-collective", h.CollectiveConvertFromList)
 		r.Post("/collective/{id}/items/{itemId}/details", h.CollectiveUpdateItemDetails)
+		r.Post("/collective/{id}/access", h.CollectiveAddAccess)
+		r.Delete("/collective/{id}/access/{userId}", h.CollectiveRemoveAccess)
 
 		// Image upload (IMGBB proxy)
 		r.Post("/api/upload-image", h.UploadImage)
+
+		// User autocomplete (for sharing private collective lists)
+		r.Get("/api/users/search", h.UserSearch)
 
 		// Administration panel
 		r.Get("/admin", h.AdminPanel)

@@ -156,6 +156,7 @@ func (h *Handler) ListEdit(w http.ResponseWriter, r *http.Request) {
 		"CanEditItems":    canEditItems,
 		"CanManageItems":  canManageItems,
 		"AllowedPatterns": AllowedPatternsJS(),
+		"Autosave":        true,
 	})
 }
 
@@ -191,6 +192,11 @@ func (h *Handler) ListUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err := models.UpdateList(h.db, listID, name, description, isPublic); err != nil {
 		http.Error(w, "Erro ao actualizar", http.StatusInternalServerError)
+		return
+	}
+
+	if r.Header.Get("X-Autosave") != "" {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -320,6 +326,11 @@ func (h *Handler) ListUpdateItemDetails(w http.ResponseWriter, r *http.Request) 
 
 	if err := models.UpdateItemDetails(h.db, itemID, description, link, image); err != nil {
 		http.Error(w, "Erro ao actualizar", http.StatusInternalServerError)
+		return
+	}
+
+	if r.Header.Get("X-Autosave") != "" {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 

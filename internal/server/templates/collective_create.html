@@ -198,7 +198,7 @@ function collectiveCreator() {
         items: [],
         isPublic: {{if .DefaultPublic}}true{{else}}false{{end}},
         votePerm: {{if .DefaultPublic}}'all'{{else}}'link'{{end}},
-        hideItems: false,
+        hideItems: true,
         allowedPatterns: {{allowedPatterns}},
         addItem() {
             const name = this.newItem.trim();

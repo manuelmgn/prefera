@@ -3,8 +3,8 @@
     <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Editar lista</h2>
     <p class="text-sm text-gray-400 dark:text-gray-500 mb-7">Modifica os metadatos e reordena os elementos</p>
 
-    <!-- Metadados -->
-    <form method="POST" action="/lists/{{.List.ID}}/update" class="ios-card rounded-2xl overflow-hidden mb-5">
+    <!-- Metadados (gardado automático) -->
+    <form method="POST" action="/lists/{{.List.ID}}/update" data-autosave class="ios-card rounded-2xl overflow-hidden mb-5">
         <div class="p-5 space-y-4">
             <div>
                 <label for="name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nome</label>
@@ -18,7 +18,7 @@
             </div>
 
             <!-- Toggle public/private iOS style -->
-            <div class="flex items-center justify-between cursor-pointer" x-data="{on: {{if .List.IsPublic}}true{{else}}false{{end}}}" @click="on = !on">
+            <div class="flex items-center justify-between cursor-pointer" x-data="{on: {{if .List.IsPublic}}true{{else}}false{{end}}}" @click="on = !on; $nextTick(() => autosaveForm($el.closest('form')))">
                 <span class="text-[15px] text-gray-700 dark:text-gray-300 font-medium">Lista pública</span>
                 <div class="relative">
                     <input type="hidden" name="is_public" :value="on ? 'on' : ''">
@@ -29,12 +29,7 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="px-5 pb-5">
-            <button type="submit"
-                    class="w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98]">
-                Guardar metadados
-            </button>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500" data-autosave-status>Gardado automaticamente</p>
         </div>
     </form>
 
@@ -61,6 +56,7 @@
             {{range .List.Items}}
             <form method="POST" action="/lists/{{$.List.ID}}/items/{{.ID}}/details"
                   x-data="itemDetailsForm('{{.Link}}', '{{.Image}}')"
+                  data-autosave
                   class="px-5 py-4">
                 <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{.Name}}</p>
                 <div class="space-y-2.5">
@@ -105,15 +101,9 @@
                         <!-- Image preview -->
                         <div x-show="imageVal" class="mt-2 relative inline-block">
                             <img :src="imageVal" alt="" class="h-16 w-auto rounded-lg object-cover border border-gray-200/60 dark:border-white/10" @error="imageVal=''">
-                            <button type="button" @click="imageVal=''" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">&times;</button>
+                            <button type="button" @click="imageVal=''; autosaveForm($el.closest('form'))" class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center leading-none">&times;</button>
                         </div>
                     </div>
-
-                    <button type="submit" :disabled="linkVal && !linkValid"
-                            :class="linkVal && !linkValid ? 'opacity-40 cursor-not-allowed' : ''"
-                            class="px-4 py-2 bg-gray-900 dark:bg-white/10 text-white rounded-xl text-xs font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors">
-                        Guardar
-                    </button>
                 </div>
             </form>
             {{end}}
@@ -139,7 +129,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
         </summary>
-        <div class="px-5 pb-5" x-data="{isPublic: {{if .List.IsPublic}}true{{else}}false{{end}}, votePerm: {{if .List.IsPublic}}'all'{{else}}'link'{{end}}, hideItems: false}">
+        <div class="px-5 pb-5" x-data="{isPublic: {{if .List.IsPublic}}true{{else}}false{{end}}, votePerm: {{if .List.IsPublic}}'all'{{else}}'link'{{end}}, hideItems: true}">
             <p class="text-xs text-gray-400 dark:text-gray-500 mb-2 leading-relaxed">
                 Converte esta lista numa <strong class="text-gray-600 dark:text-gray-300">lista coletiva</strong> que outras pessoas podem ranquear.
                 Receberás um link de partilha para convidar participantes.
@@ -257,6 +247,7 @@ function itemDetailsForm(initialLink, initialImage) {
                 const data = await resp.json();
                 if (data.url) {
                     this.imageVal = data.url;
+                    autosaveForm(this.$el);
                 } else {
                     this.uploadError = data.error || 'Erro ao subir imagem';
                 }

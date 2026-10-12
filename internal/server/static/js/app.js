@@ -5,6 +5,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     initSortable();
     markActiveTab();
+    initAutosaveForms();
 });
 
 // Also reinitialise after an HTMX swap (for dynamic pages)
@@ -46,6 +47,11 @@ function initSortable() {
         // Update rank numbers after each drag
         onEnd: function() {
             updateRankNumbers();
+            // On edit pages with data-autosave-order, persist the order automatically
+            var autoOrderID = list.getAttribute('data-autosave-order');
+            if (autoOrderID) {
+                saveOrder(parseInt(autoOrderID, 10));
+            }
         }
     });
 }
@@ -105,4 +111,60 @@ function saveOrder(listID) {
     }).catch(function() {
         alert('Erro de conexom');
     });
+}
+
+// --- Autosave ---------------------------------------------------------------
+// Forms marked with data-autosave submit themselves automatically:
+// text fields debounce 800ms, other changes (toggles, selects) save after 150ms.
+
+function performAutosave(form) {
+    var status = form.querySelector('[data-autosave-status]');
+    if (status) status.textContent = 'A gardar…';
+    fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Autosave': '1' }
+    }).then(function(resp) {
+        if (status) status.textContent = resp.ok ? 'Gardado automaticamente' : 'Erro ao gardar';
+    }).catch(function() {
+        if (status) status.textContent = 'Erro de rede';
+    });
+}
+
+// autosaveForm saves a form immediately (used by Alpine components after
+// changing bound hidden inputs, where no native input event fires).
+function autosaveForm(form) {
+    if (!form) return;
+    clearTimeout(form._autosaveTimer);
+    performAutosave(form);
+}
+
+function initAutosaveForms() {
+    document.querySelectorAll('form[data-autosave]').forEach(function(form) {
+        form.addEventListener('input', function(e) {
+            clearTimeout(form._autosaveTimer);
+            form._autosaveTimer = setTimeout(function() { performAutosave(form); }, 800);
+        });
+        form.addEventListener('change', function(e) {
+            if (e.target.type === 'file') return;
+            clearTimeout(form._autosaveTimer);
+            form._autosaveTimer = setTimeout(function() { performAutosave(form); }, 150);
+        });
+    });
+}
+
+// --- Toast ------------------------------------------------------------------
+
+function showToast(message) {
+    var existing = document.querySelector('.app-toast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.className = 'app-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    requestAnimationFrame(function() { toast.classList.add('app-toast-visible'); });
+    setTimeout(function() {
+        toast.classList.remove('app-toast-visible');
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 2500);
 }

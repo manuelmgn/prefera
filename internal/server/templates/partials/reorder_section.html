@@ -31,7 +31,8 @@
             <div class="ios-card rounded-xl p-4 border border-gray-100/60 dark:border-white/5">
                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Orde manual</p>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Arrasta os elementos para ordená-los</p>
-                <div class="space-y-1.5" id="{{if .Collective}}collective-sortable{{else}}sortable-items{{end}}">
+                <div class="space-y-1.5" id="{{if .Collective}}collective-sortable{{else}}sortable-items{{end}}"
+                     {{if .Autosave}}data-autosave-order="{{.List.ID}}"{{end}}>
                     {{if .Collective}}
                     {{range .Items}}
                     <div class="sortable-item flex items-center gap-2.5 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/8 rounded-lg px-3 py-2.5 border border-gray-100/60 dark:border-white/5 cursor-grab active:cursor-grabbing transition-colors"
@@ -65,7 +66,7 @@
                         class="w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
                     Guardar a minha orde
                 </button>
-                {{else}}
+                {{else if not .Autosave}}
                 <button onclick="saveOrder({{.List.ID}})"
                         class="btn-save-order w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
                     Guardar orde

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
@@ -94,7 +95,8 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 
 	// Check view permission
 	isParticipant, _ := models.IsParticipant(h.db, collectiveID, user.ID)
-	if !cl.IsPublic && !isParticipant {
+	hasAccess, _ := models.HasCollectiveAccess(h.db, collectiveID, user.ID)
+	if !cl.IsPublic && !isParticipant && !hasAccess {
 		http.Error(w, "Sem permissom", http.StatusForbidden)
 		return
 	}
@@ -104,7 +106,7 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 	if cl.VotePermission != "closed" && cl.IsActive {
 		if cl.VotePermission == "all" && !isParticipant {
 			canVote = true // will be added as participant on first vote
-		} else if isParticipant {
+		} else if isParticipant || hasAccess {
 			canVote = true
 		}
 	}
@@ -391,6 +393,20 @@ func (h *Handler) CollectiveEditPage(w http.ResponseWriter, r *http.Request) {
 	}
 	canManageItems := canEditItems && !createdAt.IsZero() && time.Since(createdAt) < 5*time.Minute
 
+	// Visibility mode for the new UI: public / link / private
+	accessUsers, err := models.GetCollectiveAccess(h.db, collectiveID)
+	if err != nil {
+		accessUsers = nil
+	}
+	mode := "link"
+	switch {
+	case cl.IsPublic && cl.VotePermission == "all":
+		mode = "public"
+	case !cl.IsPublic && len(accessUsers) > 0:
+		mode = "private"
+	}
+	accessJSON, _ := json.Marshal(accessUsers)
+
 	h.renderPage(w, "collective_edit", map[string]interface{}{
 		"User":            user,
 		"Title":           "Editar: " + cl.Name,
@@ -400,6 +416,8 @@ func (h *Handler) CollectiveEditPage(w http.ResponseWriter, r *http.Request) {
 		"CanEditItems":    canEditItems,
 		"CanManageItems":  canManageItems,
 		"AllowedPatterns": AllowedPatternsJS(),
+		"Mode":            mode,
+		"AccessUsersJSON": template.JS(accessJSON),
 	})
 }
 
@@ -435,6 +453,11 @@ func (h *Handler) CollectiveUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if err := models.UpdateCollective(h.db, collectiveID, name, description, isPublic, votePermission, hideItems); err != nil {
 		http.Error(w, "Erro ao actualizar", http.StatusInternalServerError)
+		return
+	}
+
+	if r.Header.Get("X-Autosave") != "" {
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
@@ -510,5 +533,91 @@ func (h *Handler) CollectiveUpdateItemDetails(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	if r.Header.Get("X-Autosave") != "" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	http.Redirect(w, r, "/collective/"+strconv.Itoa(collectiveID)+"/edit", http.StatusSeeOther)
+}
+
+// UserSearch returns users matching the ?q= query as JSON (for autocomplete).
+// Requires at least 2 characters. The searching user is excluded.
+func (h *Handler) UserSearch(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	w.Header().Set("Content-Type", "application/json")
+	if len(q) < 2 {
+		w.Write([]byte("[]"))
+		return
+	}
+	results, err := models.SearchUsers(h.db, q, user.ID, 8)
+	if err != nil {
+		http.Error(w, "Erro na procura", http.StatusInternalServerError)
+		return
+	}
+	if results == nil {
+		results = []models.UserSearchResult{}
+	}
+	json.NewEncoder(w).Encode(results)
+}
+
+// collectiveEditAuth loads the collective and checks the current user is its creator.
+func (h *Handler) collectiveEditAuth(w http.ResponseWriter, r *http.Request) (*models.CollectiveList, int, bool) {
+	user := auth.UserFromContext(r.Context())
+	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return nil, 0, false
+	}
+	cl, err := models.GetCollectiveByID(h.db, collectiveID)
+	if err != nil {
+		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		return nil, 0, false
+	}
+	if cl.CreatorID != user.ID {
+		http.Error(w, "Sem permissom", http.StatusForbidden)
+		return nil, 0, false
+	}
+	return cl, collectiveID, true
+}
+
+// CollectiveAddAccess grants a user direct access to a private collective list.
+func (h *Handler) CollectiveAddAccess(w http.ResponseWriter, r *http.Request) {
+	_, collectiveID, ok := h.collectiveEditAuth(w, r)
+	if !ok {
+		return
+	}
+	targetID, err := strconv.Atoi(r.FormValue("user_id"))
+	if err != nil || targetID <= 0 {
+		http.Error(w, "Utilizadore inválido", http.StatusBadRequest)
+		return
+	}
+	if _, err := models.GetUserByID(h.db, targetID); err != nil {
+		http.Error(w, "Utilizadore nom encontrado", http.StatusNotFound)
+		return
+	}
+	if err := models.AddCollectiveAccess(h.db, collectiveID, targetID); err != nil {
+		http.Error(w, "Erro ao partilhar", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// CollectiveRemoveAccess revokes a user's direct access to a collective list.
+func (h *Handler) CollectiveRemoveAccess(w http.ResponseWriter, r *http.Request) {
+	_, collectiveID, ok := h.collectiveEditAuth(w, r)
+	if !ok {
+		return
+	}
+	targetID, err := strconv.Atoi(chi.URLParam(r, "userId"))
+	if err != nil || targetID <= 0 {
+		http.Error(w, "Utilizadore inválido", http.StatusBadRequest)
+		return
+	}
+	if err := models.RemoveCollectiveAccess(h.db, collectiveID, targetID); err != nil {
+		http.Error(w, "Erro ao remover", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
