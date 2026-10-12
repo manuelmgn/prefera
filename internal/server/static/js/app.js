@@ -4,12 +4,31 @@
 // Initialise SortableJS when the page loads
 document.addEventListener('DOMContentLoaded', function() {
     initSortable();
+    markActiveTab();
 });
 
 // Also reinitialise after an HTMX swap (for dynamic pages)
 document.addEventListener('htmx:afterSwap', function() {
     initSortable();
 });
+
+// markActiveTab highlights the matching item in the mobile bottom tab bar
+function markActiveTab() {
+    var path = window.location.pathname;
+    document.querySelectorAll('[data-tab]').forEach(function(el) {
+        var tab = el.getAttribute('data-tab');
+        var active =
+            (tab === 'home' && path === '/') ||
+            (tab === 'lists' && path.indexOf('/my-lists') === 0) ||
+            (tab === 'profile' && (path.indexOf('/settings') === 0 || path.indexOf('/password') === 0 || path.indexOf('/admin') === 0));
+        if (active) {
+            el.classList.remove('text-gray-400', 'dark:text-gray-500');
+            el.classList.add('text-violet-600', 'dark:text-violet-400');
+            var img = el.querySelector('img');
+            if (img) img.classList.remove('grayscale', 'opacity-70');
+        }
+    });
+}
 
 // initSortable sets up drag-and-drop on the item list
 function initSortable() {
