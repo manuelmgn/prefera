@@ -350,10 +350,29 @@ func UpdateItemPositions(db *sql.DB, listID int, itemIDs []int) error {
 	return tx.Commit()
 }
 
-// DeleteList deletes a list and all its items (via CASCADE).
+// DeleteList deletes a list along with its items and versus data.
+// Dependent rows are deleted explicitly so this works even on databases
+// created with older schemas whose foreign keys lack ON DELETE CASCADE.
 func DeleteList(db *sql.DB, listID int) error {
-	_, err := db.Exec("DELETE FROM lists WHERE id = $1", listID)
-	return err
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	queries := []string{
+		"DELETE FROM versus_matches WHERE session_id IN (SELECT id FROM versus_sessions WHERE list_id = $1)",
+		"DELETE FROM versus_standings WHERE session_id IN (SELECT id FROM versus_sessions WHERE list_id = $1)",
+		"DELETE FROM versus_sessions WHERE list_id = $1",
+		"DELETE FROM list_items WHERE list_id = $1",
+		"DELETE FROM lists WHERE id = $1",
+	}
+	for _, q := range queries {
+		if _, err := tx.Exec(q, listID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // CloneList creates a copy of a public list for another user.

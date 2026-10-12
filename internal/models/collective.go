@@ -891,8 +891,27 @@ func UpdateCollective(db *sql.DB, collectiveID int, name, description string, is
 	return err
 }
 
-// DeleteCollective deletes a collective list and all associated data (via CASCADE).
+// DeleteCollective deletes a collective list and all associated data.
+// Dependent rows are deleted explicitly so this works even on databases
+// created with older schemas whose foreign keys lack ON DELETE CASCADE.
 func DeleteCollective(db *sql.DB, collectiveID int) error {
-	_, err := db.Exec("DELETE FROM collective_lists WHERE id = $1", collectiveID)
-	return err
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	queries := []string{
+		"DELETE FROM collective_rankings WHERE collective_id = $1",
+		"DELETE FROM collective_access WHERE collective_id = $1",
+		"DELETE FROM collective_participants WHERE collective_id = $1",
+		"DELETE FROM collective_items WHERE collective_id = $1",
+		"DELETE FROM collective_lists WHERE id = $1",
+	}
+	for _, q := range queries {
+		if _, err := tx.Exec(q, collectiveID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

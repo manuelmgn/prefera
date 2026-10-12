@@ -25,28 +25,10 @@
         </ol>
     </div>
 
-    <!-- Toggle public/private before saving -->
-    <div class="ios-card rounded-2xl p-5 mb-5" x-data="{on: {{if .List.IsPublic}}true{{else}}false{{end}}}">
-        <div class="flex items-center justify-between cursor-pointer" @click="on = !on">
-            <div>
-                <span class="text-[15px] font-medium text-gray-800 dark:text-gray-200">Lista pública</span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 block mt-0.5">Outros utilizadores poderám ver esta lista</span>
-            </div>
-            <div class="relative">
-                <input type="hidden" name="is_public_val" :value="on ? 'on' : ''" id="result-is-public">
-                <div :class="on ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-600'"
-                     class="w-[51px] h-[31px] rounded-full transition-colors duration-300 cursor-pointer shadow-inner">
-                    <div :class="on ? 'translate-x-[20px]' : 'translate-x-0'"
-                         class="absolute top-[2px] left-[2px] w-[27px] h-[27px] bg-white rounded-full shadow-md transition-transform duration-300"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="flex flex-col sm:flex-row gap-3">
         <button onclick="saveOrderAndPublic({{.List.ID}})"
                 class="btn-save-order flex-1 bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98]">
-            Gardar orde
+            Guardar orde
         </button>
         <a href="/lists/{{.List.ID}}/edit"
            class="flex-1 text-center ios-card text-gray-700 dark:text-gray-300 py-3 rounded-2xl text-[15px] font-semibold hover:bg-white/70 dark:hover:bg-white/10 transition-colors">
@@ -67,20 +49,7 @@ function saveOrderAndPublic(listID) {
         body: JSON.stringify(ids)
     }).then(function(response) {
         if (!response.ok) { showToast('Erro ao gardar a orde'); return; }
-
-        var isPublic = document.getElementById('result-is-public').value;
-        var form = new FormData();
-        form.append('name', '');
-        form.append('description', '');
-        if (isPublic === 'on') form.append('is_public', 'on');
-
-        return fetch('/lists/' + listID + '/update', { method: 'POST', body: form });
-    }).then(function(response) {
-        if (response && response.ok) {
-            window.location.href = '/lists/' + listID;
-        } else if (response) {
-            showToast('Erro ao actualizar');
-        }
+        window.location.href = '/lists/' + listID;
     }).catch(function() { showToast('Erro de rede. Tenta de novo.'); });
 }
 </script>

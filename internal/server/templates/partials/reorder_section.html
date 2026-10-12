@@ -79,13 +79,13 @@
         <div x-show="tab === 'versus'" x-transition>
             <form method="POST" action="{{if .Collective}}/collective/{{.Collective.ID}}/versus{{else}}/lists/{{.List.ID}}/versus{{end}}" x-data="{mode: 'rapido'}">
                 <div class="flex items-start gap-1.5 mb-3">
-                    <p class="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">Ordena mediante enfrentamentos 1 vs 1.{{if not .HideItems}} Podes reordenar manualmente depois.{{end}}</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">Ordena mediante enfrentamentos 1 vs 1.</p>
                     <span class="relative inline-flex shrink-0 mt-0.5" x-data="tooltip()" @click.outside="hide()">
                         <button type="button"
                                 @mouseenter="show()" @mouseleave="hide()" @click="toggle()"
                                 class="w-4 h-4 rounded-full bg-gray-400/10 dark:bg-white/5 text-gray-400 dark:text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</button>
                         <span x-show="open" x-transition
-                              class="absolute bottom-full left-0 mb-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
+                              class="absolute top-full left-0 mt-2 w-64 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
                               style="display: none;">Rápido: menos perguntas, resultado menos exato. Detalhado: mais perguntas, resultado mais certeiro.{{if not .HideItems}} Podes reordenar manualmente depois.{{end}}</span>
                     </span>
                 </div>
