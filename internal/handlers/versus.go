@@ -22,7 +22,7 @@ func (h *Handler) VersusStart(w http.ResponseWriter, r *http.Request) {
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 	if list.UserID != user.ID {
@@ -54,7 +54,7 @@ func (h *Handler) VersusPage(w http.ResponseWriter, r *http.Request) {
 
 	session, err := models.GetVersusSession(h.db, sessionID)
 	if err != nil {
-		http.Error(w, "Sessom nom encontrada", http.StatusNotFound)
+		http.Error(w, "Sessão não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -230,13 +230,13 @@ func (h *Handler) VersusResult(w http.ResponseWriter, r *http.Request) {
 
 	session, err := models.GetVersusSession(h.db, sessionID)
 	if err != nil {
-		http.Error(w, "Sessom nom encontrada", http.StatusNotFound)
+		http.Error(w, "Sessão não encontrada", http.StatusNotFound)
 		return
 	}
 
 	list, err := models.GetListByID(h.db, session.ListID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 	if list.UserID != user.ID {
@@ -278,13 +278,13 @@ func (h *Handler) VersusSave(w http.ResponseWriter, r *http.Request) {
 
 	session, err := models.GetVersusSession(h.db, sessionID)
 	if err != nil {
-		http.Error(w, "Sessom nom encontrada", http.StatusNotFound)
+		http.Error(w, "Sessão não encontrada", http.StatusNotFound)
 		return
 	}
 
 	list, err := models.GetListByID(h.db, session.ListID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 	if list.UserID != user.ID {

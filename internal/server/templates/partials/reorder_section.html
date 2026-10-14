@@ -1,7 +1,7 @@
 {{define "reorder_section"}}
 <!-- Reordenar / votar: selector de modo -->
 <div class="ios-card rounded-2xl overflow-hidden mb-5" x-data="{ tab: '{{if .StartClosed}}{{else}}{{if .HideItems}}versus{{else}}manual{{end}}{{end}}' }">
-    <!-- Título da secçom -->
+    <!-- Título da secção -->
     <div class="px-5 pt-4 pb-0">
         <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">O meu ranking</h3>
     </div>
@@ -32,7 +32,7 @@
 
     <div class="px-5 pb-5 pt-3">
         {{if not .HideItems}}
-        <!-- Orde manual -->
+        <!-- Ordem manual -->
         <div x-show="tab === 'manual'" x-transition>
             <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Arrasta os elementos para ordená-los</p>
             <div class="space-y-1.5" id="{{if .Collective}}collective-sortable{{else}}sortable-items{{end}}"
@@ -68,12 +68,12 @@
             {{if .Collective}}
             <button onclick="saveCollectiveOrder({{.Collective.ID}})"
                     class="w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
-                Guardar a minha orde
+                Guardar a minha ordem
             </button>
             {{else if not .Autosave}}
             <button onclick="saveOrder({{.List.ID}})"
                     class="btn-save-order w-full mt-3 bg-gray-900 dark:bg-white/10 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors active:scale-[0.98]">
-                Guardar orde
+                Guardar ordem
             </button>
             {{end}}
         </div>
@@ -114,14 +114,14 @@
         </div>
 
         {{if and .Collective .HasRanked}}
-        <!-- Apagar os meus votos (dentro da secçom de reordenar, em colectivas) -->
+        <!-- Apagar os meus votos (dentro da secção de reordenar, em colectivas) -->
         <form method="POST" action="/collective/{{.Collective.ID}}/delete-votes"
               onsubmit="return confirm('Tens a certeza? Os teus votos nesta lista serám apagados.')"
               class="ios-card rounded-xl p-4 border border-red-100/60 dark:border-red-500/10 mt-3">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Apagar os meus votos</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Remove a tua votaçom desta lista</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Remove a tua votação desta lista</p>
                 </div>
                 <button type="submit"
                         class="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 text-sm font-semibold transition-colors shrink-0">

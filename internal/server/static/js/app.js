@@ -142,7 +142,7 @@ function performAutosave(form) {
 // autosaveForm saves a form immediately (used by Alpine components after
 // changing bound hidden inputs, where no native input event fires).
 function autosaveForm(form) {
-    // Acepta o formulario ou calquera elemento dentro del
+    // Aceita o formulário ou qualquer elemento dentro dele
     if (!form) return;
     if (form.tagName !== 'FORM') form = form.closest('form');
     if (!form || form.tagName !== 'FORM') return;
@@ -234,7 +234,7 @@ function imageLooksOk(v) {
 }
 
 function imageUploader(item) {
-    const maxSize = 10 * 1024 * 1024; // 10 MB, o mesmo límite ca no servidor
+    const maxSize = 10 * 1024 * 1024; // 10 MB, o mesmo limite que no servidor
     return {
         uploading: false,
         uploadError: '',
@@ -243,32 +243,32 @@ function imageUploader(item) {
             const v = (item.image || '').trim();
             if (!v) { this.imageError = ''; return; }
             if (!/^https?:\/\//i.test(v)) {
-                this.imageError = 'A URL da imaxe debe começar por http:// ou https://.';
+                this.imageError = 'A URL da imagem deve começar por http:// ou https://.';
                 return;
             }
             const ok = imageLooksOk(v);
-            this.imageError = ok ? '' : 'Esa URL nom parece dunha imaxe. Usa un enlace que remate en .jpg, .png, .gif ou .webp, ou sube a imaxe desde o teu dispositivo.';
+            this.imageError = ok ? '' : 'Esse URL não parece ser de uma imagem. Usa um link que termine em .jpg, .png, .gif ou .webp, ou carrega a imagem a partir do teu dispositivo.';
         },
         onImageLoadError() {
             const v = (item.image || '').trim();
-            if (!v) return; // src baleiro: o propio reset dispara error, ignorar
+            if (!v) return; // src vazio: o próprio reset dispara o erro, ignorar
             item.image = '';
             this.imageError = imageLooksOk(v)
-                ? 'Non se puido cargar a imaxe desde esa URL. Verifica que o enlace sexa correcto ou sube a imaxe desde o teu dispositivo.'
-                : 'Esa URL nom parece dunha imaxe. Usa un enlace que remate en .jpg, .png, .gif ou .webp, ou sube a imaxe desde o teu dispositivo.';
+                ? 'Não foi possível carregar a imagem a partir desse URL. Verifica que o link está correto ou carrega a imagem a partir do teu dispositivo.'
+                : 'Esse URL não parece ser de uma imagem. Usa um link que termine em .jpg, .png, .gif ou .webp, ou carrega a imagem a partir do teu dispositivo.';
         },
         async doUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
             if (!file.type.startsWith('image/')) {
-                this.uploadError = 'O ficheiro seleccionado nom é unha imaxe' +
+                this.uploadError = 'O ficheiro selecionado não é uma imagem' +
                     (file.type ? ` (tipo «${file.type}»)` : '') +
-                    '. Escolle un ficheiro JPG, PNG, GIF ou WebP.';
+                    '. Escolhe um ficheiro JPG, PNG, GIF ou WebP.';
                 event.target.value = '';
                 return;
             }
             if (file.size > maxSize) {
-                this.uploadError = `A imaxe é demasiado grande (${Math.round(file.size / 1048576)} MB; máx. 10 MB). Reduce o tamaño e tenta de novo.`;
+                this.uploadError = `A imagem é demasiado grande (${Math.round(file.size / 1048576)} MB; máx. 10 MB). Reduz o tamanho e tenta de novo.`;
                 event.target.value = '';
                 return;
             }
@@ -283,10 +283,10 @@ function imageUploader(item) {
                     item.image = d.url;
                     this.imageError = '';
                 } else {
-                    this.uploadError = (d && d.error) || 'A imaxe nom se puido subir. Tenta de novo nuns segundos.';
+                    this.uploadError = (d && d.error) || 'A imagem não foi possível enviar. Tenta de novo em alguns segundos.';
                 }
             } catch (e) {
-                this.uploadError = 'Non foi possível contactar co servidor. Verifica a tua conexom e tenta de novo.';
+                this.uploadError = 'Não foi possível contactar o servidor. Verifica a tua ligação e tenta de novo.';
             } finally {
                 this.uploading = false;
                 event.target.value = '';
@@ -309,7 +309,7 @@ function linkValidator(item) {
 // itemDetailsForm drives description/link/image editing for a single saved
 // item (used on the list edit pages). Requires _allowedPatterns.
 function itemDetailsForm(initialLink, initialImage) {
-    const maxSize = 10 * 1024 * 1024; // 10 MB, o mesmo límite ca no servidor
+    const maxSize = 10 * 1024 * 1024; // 10 MB, o mesmo limite que no servidor
     return {
         linkVal: initialLink,
         imageVal: initialImage,
@@ -330,32 +330,32 @@ function itemDetailsForm(initialLink, initialImage) {
             const v = (this.imageVal || '').trim();
             if (!v) { this.imageError = ''; return; }
             if (!/^https?:\/\//i.test(v)) {
-                this.imageError = 'A URL da imaxe debe começar por http:// ou https://.';
+                this.imageError = 'A URL da imagem deve começar por http:// ou https://.';
                 return;
             }
             const ok = imageLooksOk(v);
-            this.imageError = ok ? '' : 'Esa URL nom parece dunha imaxe. Usa un enlace que remate en .jpg, .png, .gif ou .webp, ou sube a imaxe desde o teu dispositivo.';
+            this.imageError = ok ? '' : 'Esse URL não parece ser de uma imagem. Usa um link que termine em .jpg, .png, .gif ou .webp, ou carrega a imagem a partir do teu dispositivo.';
         },
         onImageLoadError() {
             const v = (this.imageVal || '').trim();
-            if (!v) return; // src baleiro: o propio reset dispara error, ignorar
+            if (!v) return; // src vazio: o próprio reset dispara o erro, ignorar
             this.imageVal = '';
             this.imageError = imageLooksOk(v)
-                ? 'Non se puido cargar a imaxe desde esa URL. Verifica que o enlace sexa correcto ou sube a imaxe desde o teu dispositivo.'
-                : 'Esa URL nom parece dunha imaxe. Usa un enlace que remate en .jpg, .png, .gif ou .webp, ou sube a imaxe desde o teu dispositivo.';
+                ? 'Não foi possível carregar a imagem a partir desse URL. Verifica que o link está correto ou carrega a imagem a partir do teu dispositivo.'
+                : 'Esse URL não parece ser de uma imagem. Usa um link que termine em .jpg, .png, .gif ou .webp, ou carrega a imagem a partir do teu dispositivo.';
         },
         async uploadImage(event) {
             const file = event.target.files[0];
             if (!file) return;
             if (!file.type.startsWith('image/')) {
-                this.uploadError = 'O ficheiro seleccionado nom é unha imaxe' +
+                this.uploadError = 'O ficheiro selecionado não é uma imagem' +
                     (file.type ? ` (tipo «${file.type}»)` : '') +
-                    '. Escolle un ficheiro JPG, PNG, GIF ou WebP.';
+                    '. Escolhe um ficheiro JPG, PNG, GIF ou WebP.';
                 event.target.value = '';
                 return;
             }
             if (file.size > maxSize) {
-                this.uploadError = `A imaxe é demasiado grande (${Math.round(file.size / 1048576)} MB; máx. 10 MB). Reduce o tamaño e tenta de novo.`;
+                this.uploadError = `A imagem é demasiado grande (${Math.round(file.size / 1048576)} MB; máx. 10 MB). Reduz o tamanho e tenta de novo.`;
                 event.target.value = '';
                 return;
             }
@@ -371,10 +371,10 @@ function itemDetailsForm(initialLink, initialImage) {
                     this.imageError = '';
                     autosaveForm(this.$el);
                 } else {
-                    this.uploadError = (data && data.error) || 'A imaxe nom se puido subir. Tenta de novo nuns segundos.';
+                    this.uploadError = (data && data.error) || 'A imagem não foi possível enviar. Tenta de novo em alguns segundos.';
                 }
             } catch (e) {
-                this.uploadError = 'Non foi possível contactar co servidor. Verifica a tua conexom e tenta de novo.';
+                this.uploadError = 'Não foi possível contactar o servidor. Verifica a tua ligação e tenta de novo.';
             } finally {
                 this.uploading = false;
                 event.target.value = '';

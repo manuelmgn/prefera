@@ -193,14 +193,14 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize+1024)
 	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 		uploadErrorJSON(w, http.StatusBadRequest,
-			"A imaxe é demasiado grande (máx. 10 MB). Reduce o tamaño e tenta de novo.")
+			"A imagem é demasiado grande (máx. 10 MB). Reduce o tamanho e tenta de novo.")
 		return
 	}
 
 	file, fileHeader, err := r.FormFile("image")
 	if err != nil {
 		uploadErrorJSON(w, http.StatusBadRequest,
-			"Nom chegou ningunha imaxe ao servidor. Tenta subila de novo.")
+			"Não chegou nenhuma imagem ao servidor. Tenta enviá-la de novo.")
 		return
 	}
 	defer file.Close()
@@ -208,7 +208,7 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	// Verify file size
 	if fileHeader.Size > maxUploadSize {
 		uploadErrorJSON(w, http.StatusBadRequest,
-			fmt.Sprintf("A imaxe é demasiado grande (%d MB; máx. 10 MB). Reduce o tamaño e tenta de novo.",
+			fmt.Sprintf("A imagem é demasiado grande (%d MB; máx. 10 MB). Reduce o tamanho e tenta de novo.",
 				fileHeader.Size>>20))
 		return
 	}
@@ -217,7 +217,7 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	imgBytes, err := io.ReadAll(file)
 	if err != nil {
 		uploadErrorJSON(w, http.StatusInternalServerError,
-			"Nom foi possível ler o ficheiro. Tenta con outra imaxe.")
+			"Não foi possível ler o ficheiro. Tenta con outra imagem.")
 		return
 	}
 
@@ -228,7 +228,7 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	}
 	if !strings.HasPrefix(contentType, "image/") {
 		uploadErrorJSON(w, http.StatusBadRequest,
-			fmt.Sprintf("O ficheiro nom parece unha imaxe (tipo «%s»). Escolle un ficheiro de imaxe (JPG, PNG, GIF, WebP…).", contentType))
+			fmt.Sprintf("O ficheiro não parece uma imagem (tipo «%s»). Escolhe um ficheiro de imagem (JPG, PNG, GIF, WebP…).", contentType))
 		return
 	}
 
@@ -247,11 +247,11 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 
 			if isTimeoutError(catboxErr) || isTimeoutError(imgbbErr) {
 				uploadErrorJSON(w, http.StatusBadGateway,
-					"O servizo de imaxes demorouse demasiado en responder. Tenta de novo nuns segundos.")
+					"O servizo de imagems demorouse demasiado en responder. Tenta de novo nuns segundos.")
 				return
 			}
 			uploadErrorJSON(w, http.StatusBadGateway,
-				"Nom foi possível guardar a imaxe nos servizos de almacenamento. Tenta de novo nuns segundos ou utiliza unha URL externa.")
+				"Nom foi possível guardar a imagem nos servizos de almacenamento. Tenta de novo em alguns segundos ou utiliza um URL externo.")
 			return
 		}
 		log.Printf("UploadImage: IMGBB fallback succeeded -> %s", imageURL)

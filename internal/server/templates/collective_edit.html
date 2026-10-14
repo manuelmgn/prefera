@@ -3,7 +3,7 @@
     <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Editar lista coletiva</h2>
     <p class="text-sm text-gray-400 dark:text-gray-500 mb-7">Configura a lista e as permissons</p>
 
-    <!-- Metadados + configuraçom (gardado automático) -->
+    <!-- Metadados + configuração (gardado automático) -->
     <form method="POST" action="/collective/{{.Collective.ID}}/update" data-autosave data-autosave-toast="Guardado com sucesso"
           x-data="collectiveSettings({ mode: '{{.Mode}}', hideItems: true, collectiveId: {{.Collective.ID}}, shareCode: '{{.Collective.ShareCode}}', shared: {{.AccessUsersJSON}} })"
           class="ios-card rounded-2xl overflow-hidden mb-5">
@@ -14,7 +14,7 @@
                        class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200">
             </div>
             <div>
-                <label for="description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descriçom (opcional)</label>
+                <label for="description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descrição (opcional)</label>
                 <textarea id="description" name="description" rows="2" maxlength="500"
                           class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200 resize-none">{{.Collective.Description}}</textarea>
             </div>
@@ -110,7 +110,7 @@
                 </button>
                 <span x-show="open" x-transition
                       class="absolute bottom-full left-0 mb-2 w-56 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
-                      style="display: none;">Os elementos nom se vem antes de votar</span>
+                      style="display: none;">Os elementos não são visíveis antes de votar</span>
             </span>
             <button type="button" @click="copyLink()"
                     class="flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-gray-200/70 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-violet-300 dark:hover:border-violet-500/40 hover:text-violet-600 dark:hover:text-violet-400 transition-all duration-200 shrink-0">
@@ -134,7 +134,7 @@
                 </div>
                 <div>
                     <span>Elementos da lista</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block font-normal">Descriçons, imagens e ligaçons</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 block font-normal">Descrições, imagens e ligações</span>
                 </div>
             </div>
             <svg class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,20 +150,20 @@
                   class="px-5 py-4">
                 <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{.Name}}</p>
                 <div class="space-y-2.5">
-                    <!-- Descriçom -->
+                    <!-- Descrição -->
                     <div>
                         {{template "item_label_description"}}
                         <textarea name="description" rows="1" maxlength="600"
                                   class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 resize-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all">{{.Description}}</textarea>
                     </div>
 
-                    <!-- Ligaçom -->
+                    <!-- Ligação -->
                     <div>
                         {{template "item_label_link"}}
                         <input type="url" name="link" x-model="linkVal" maxlength="500" @input="validateLink()"
                                class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
                                :class="linkVal && !linkValid ? 'border-red-400 dark:border-red-500' : ''">
-                        <p x-show="linkVal && !linkValid" class="text-[10px] text-red-500 mt-1">Ligaçom nom válida</p>
+                        <p x-show="linkVal && !linkValid" class="text-[10px] text-red-500 mt-1">Ligação não válida</p>
                     </div>
 
                     <!-- Imagem -->
@@ -220,7 +220,7 @@
     <!-- Apagar lista coletiva -->
     <div class="mb-5">
         <form method="POST" action="/collective/{{.Collective.ID}}/delete"
-              onsubmit="return confirm('Tens a certeza? Isto apagará a lista coletiva e TODOS os rankings. Esta acçom nom se pode desfazer.')">
+              onsubmit="return confirm('Tens a certeza? Isto apagará a lista coletiva e TODOS os rankings. Esta acção não pode ser desfeita.')">
             <button type="submit"
                     class="w-full text-center text-red-500 hover:text-red-600 text-sm font-medium py-2 rounded-xl hover:bg-red-50/50 dark:hover:bg-red-500/5 transition-colors">
                 Apagar lista coletiva
@@ -306,7 +306,7 @@ function collectiveSettings(cfg) {
             ta.style.opacity = '0';
             document.body.appendChild(ta);
             ta.select();
-            try { document.execCommand('copy'); done(); } catch (e) { showToast('Nom foi possível copiar'); }
+            try { document.execCommand('copy'); done(); } catch (e) { showToast('Não foi possível copiar'); }
             document.body.removeChild(ta);
         }
     };

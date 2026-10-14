@@ -47,7 +47,7 @@
         <div class="px-5 py-3 border-b border-white/10 dark:border-white/5">
             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Resultado coletivo</span>
             {{if ge .Collective.Ranked 2}}
-            <span class="text-xs text-gray-400 dark:text-gray-500 ml-2">(média de {{.Collective.Ranked}} votaçons)</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 ml-2">(média de {{.Collective.Ranked}} votações)</span>
             {{end}}
         </div>
         <ol class="divide-y divide-gray-50/80 dark:divide-white/5">
@@ -91,7 +91,7 @@
                 </a>
                 {{end}}
                 {{if ge $.Collective.Ranked 2}}
-                <span class="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums" title="Posiçom média">
+                <span class="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums" title="Posição média">
                     {{printf "%.1f" .AvgPosition}}
                 </span>
                 {{end}}
@@ -136,7 +136,7 @@
     </div>
     {{end}}
 
-    <!-- 5. Açons do criador: copiar link + clonar + editar -->
+    <!-- 5. Ações do criador: copiar link + clonar + editar -->
     {{if .IsCreator}}
     <div class="flex gap-3 mb-6">
         <button type="button" onclick="copyShareLink('{{.Collective.ShareCode}}')"
@@ -189,7 +189,7 @@ function fallbackCopyLink(text, done) {
     ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand('copy'); done(); } catch (e) { showToast('Nom foi possível copiar'); }
+    try { document.execCommand('copy'); done(); } catch (e) { showToast('Não foi possível copiar'); }
     document.body.removeChild(ta);
 }
 
@@ -232,7 +232,7 @@ function saveCollectiveOrder(collectiveID) {
         if (response.ok) {
             window.location.reload();
         } else {
-            showToast('Erro ao gardar a orde');
+            showToast('Erro ao guardar a ordem');
         }
     }).catch(function() { showToast('Erro de rede. Tenta de novo.'); });
 }

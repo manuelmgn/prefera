@@ -66,7 +66,7 @@ func (h *Handler) CollectiveSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(cleanItems) < 2 {
-		http.Error(w, "Engade ao menos 2 elementos", http.StatusBadRequest)
+		http.Error(w, "Adiciona pelo menos 2 elementos", http.StatusBadRequest)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 
 	cl, err := models.GetCollectiveByID(h.db, collectiveID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 	isParticipant, _ := models.IsParticipant(h.db, collectiveID, user.ID)
 	hasAccess, _ := models.HasCollectiveAccess(h.db, collectiveID, user.ID)
 	if !cl.IsPublic && !isParticipant && !hasAccess {
-		http.Error(w, "Sem permissom", http.StatusForbidden)
+		http.Error(w, "Sem permissão", http.StatusForbidden)
 		return
 	}
 
@@ -191,7 +191,7 @@ func (h *Handler) CollectiveJoinDirect(w http.ResponseWriter, r *http.Request) {
 
 	cl, err := models.GetCollectiveByShareCode(h.db, code)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -218,13 +218,13 @@ func (h *Handler) CollectiveReorder(w http.ResponseWriter, r *http.Request) {
 
 	cl, err := models.GetCollectiveByID(h.db, collectiveID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
 	// Check vote permission
 	if !models.CanUserVote(h.db, collectiveID, user.ID) {
-		http.Error(w, "Sem permissom para votar", http.StatusForbidden)
+		http.Error(w, "Sem permissão para votar", http.StatusForbidden)
 		return
 	}
 
@@ -272,12 +272,12 @@ func (h *Handler) CollectiveVersusStart(w http.ResponseWriter, r *http.Request) 
 
 	cl, err := models.GetCollectiveByID(h.db, collectiveID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
 	if !models.CanUserVote(h.db, collectiveID, user.ID) {
-		http.Error(w, "Sem permissom para votar", http.StatusForbidden)
+		http.Error(w, "Sem permissão para votar", http.StatusForbidden)
 		return
 	}
 
@@ -334,12 +334,12 @@ func (h *Handler) CollectiveConvertFromList(w http.ResponseWriter, r *http.Reque
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
 	if list.UserID != user.ID {
-		http.Error(w, "Sem permissom", http.StatusForbidden)
+		http.Error(w, "Sem permissão", http.StatusForbidden)
 		return
 	}
 
@@ -367,12 +367,12 @@ func (h *Handler) CollectiveEditPage(w http.ResponseWriter, r *http.Request) {
 
 	cl, err := models.GetCollectiveByID(h.db, collectiveID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
 	if cl.CreatorID != user.ID {
-		http.Error(w, "Sem permissom", http.StatusForbidden)
+		http.Error(w, "Sem permissão", http.StatusForbidden)
 		return
 	}
 
@@ -439,12 +439,12 @@ func (h *Handler) CollectiveUpdate(w http.ResponseWriter, r *http.Request) {
 
 	cl, err := models.GetCollectiveByID(h.db, collectiveID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
 	if cl.CreatorID != user.ID {
-		http.Error(w, "Sem permissom", http.StatusForbidden)
+		http.Error(w, "Sem permissão", http.StatusForbidden)
 		return
 	}
 
@@ -482,12 +482,12 @@ func (h *Handler) CollectiveDelete(w http.ResponseWriter, r *http.Request) {
 
 	cl, err := models.GetCollectiveByID(h.db, collectiveID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
 	if cl.CreatorID != user.ID {
-		http.Error(w, "Sem permissom", http.StatusForbidden)
+		http.Error(w, "Sem permissão", http.StatusForbidden)
 		return
 	}
 
@@ -511,18 +511,18 @@ func (h *Handler) CollectiveUpdateItemDetails(w http.ResponseWriter, r *http.Req
 
 	cl, err := models.GetCollectiveByID(h.db, collectiveID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
 	if cl.CreatorID != user.ID {
-		http.Error(w, "Sem permissom", http.StatusForbidden)
+		http.Error(w, "Sem permissão", http.StatusForbidden)
 		return
 	}
 
 	// Only allow edits if nobody has ranked yet
 	if cl.Ranked > 0 {
-		http.Error(w, "Nom é possível editar após votos registados", http.StatusForbidden)
+		http.Error(w, "Não é possível editar após votos registados", http.StatusForbidden)
 		return
 	}
 
@@ -580,11 +580,11 @@ func (h *Handler) collectiveEditAuth(w http.ResponseWriter, r *http.Request) (*m
 	}
 	cl, err := models.GetCollectiveByID(h.db, collectiveID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return nil, 0, false
 	}
 	if cl.CreatorID != user.ID {
-		http.Error(w, "Sem permissom", http.StatusForbidden)
+		http.Error(w, "Sem permissão", http.StatusForbidden)
 		return nil, 0, false
 	}
 	return cl, collectiveID, true
@@ -598,11 +598,11 @@ func (h *Handler) CollectiveAddAccess(w http.ResponseWriter, r *http.Request) {
 	}
 	targetID, err := strconv.Atoi(r.FormValue("user_id"))
 	if err != nil || targetID <= 0 {
-		http.Error(w, "Utilizadore inválido", http.StatusBadRequest)
+		http.Error(w, "Utilizador inválido", http.StatusBadRequest)
 		return
 	}
 	if _, err := models.GetUserByID(h.db, targetID); err != nil {
-		http.Error(w, "Utilizadore nom encontrado", http.StatusNotFound)
+		http.Error(w, "Utilizador não encontrado", http.StatusNotFound)
 		return
 	}
 	if err := models.AddCollectiveAccess(h.db, collectiveID, targetID); err != nil {
@@ -620,7 +620,7 @@ func (h *Handler) CollectiveRemoveAccess(w http.ResponseWriter, r *http.Request)
 	}
 	targetID, err := strconv.Atoi(chi.URLParam(r, "userId"))
 	if err != nil || targetID <= 0 {
-		http.Error(w, "Utilizadore inválido", http.StatusBadRequest)
+		http.Error(w, "Utilizador inválido", http.StatusBadRequest)
 		return
 	}
 	if err := models.RemoveCollectiveAccess(h.db, collectiveID, targetID); err != nil {
@@ -641,7 +641,7 @@ func (h *Handler) CollectiveClone(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !models.CanUserView(h.db, collectiveID, user.ID) {
-		http.Error(w, "Sem permissom", http.StatusForbidden)
+		http.Error(w, "Sem permissão", http.StatusForbidden)
 		return
 	}
 

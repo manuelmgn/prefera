@@ -96,6 +96,24 @@ func NewRouter(database *sql.DB) (http.Handler, error) {
 	}
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticSub))))
 
+	// Root favicons and Apple touch icons requested directly by browsers
+	faviconBytes, err := staticFS.ReadFile("static/favicon.png")
+	if err == nil {
+		serveFaviconPNG := func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "image/png")
+			w.Header().Set("Cache-Control", "public, max-age=604800, immutable")
+			w.Write(faviconBytes)
+		}
+		serveFaviconICO := func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "image/x-icon")
+			w.Header().Set("Cache-Control", "public, max-age=604800, immutable")
+			w.Write(faviconBytes)
+		}
+		r.Get("/favicon.ico", serveFaviconICO)
+		r.Get("/apple-touch-icon.png", serveFaviconPNG)
+		r.Get("/apple-touch-icon-precomposed.png", serveFaviconPNG)
+	}
+
 	// Public routes (no authentication required)
 	r.Get("/login", h.LoginPage)
 	r.Post("/login", h.LoginSubmit)

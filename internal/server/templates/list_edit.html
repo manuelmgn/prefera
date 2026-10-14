@@ -12,7 +12,7 @@
                        class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200">
             </div>
             <div>
-                <label for="description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descriçom (opcional)</label>
+                <label for="description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descrição (opcional)</label>
                 <textarea id="description" name="description" rows="2" maxlength="500"
                           class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200 resize-none">{{.List.Description}}</textarea>
             </div>
@@ -44,7 +44,7 @@
                 </div>
                 <div>
                     <span>Elementos da lista</span>
-                    <span class="text-xs text-gray-400 dark:text-gray-500 block font-normal">Descriçons, imagens e ligaçons</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 block font-normal">Descrições, imagens e ligações</span>
                 </div>
             </div>
             <svg class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,20 +60,20 @@
                   class="px-5 py-4">
                 <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{.Name}}</p>
                 <div class="space-y-2.5">
-                    <!-- Descriçom -->
+                    <!-- Descrição -->
                     <div>
                         {{template "item_label_description"}}
                         <textarea name="description" rows="1" maxlength="600"
                                   class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 resize-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all">{{.Description}}</textarea>
                     </div>
 
-                    <!-- Ligaçom -->
+                    <!-- Ligação -->
                     <div>
                         {{template "item_label_link"}}
                         <input type="url" name="link" x-model="linkVal" maxlength="500" @input="validateLink()"
                                class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
                                :class="linkVal && !linkValid ? 'border-red-400 dark:border-red-500' : ''">
-                        <p x-show="linkVal && !linkValid" class="text-[10px] text-red-500 mt-1">Ligaçom nom válida</p>
+                        <p x-show="linkVal && !linkValid" class="text-[10px] text-red-500 mt-1">Ligação não válida</p>
                     </div>
 
                     <!-- Imagem -->
@@ -132,7 +132,7 @@
                 Receberás um link de partilha para convidar participantes.
             </p>
             <p class="text-xs text-amber-600 dark:text-amber-400 mb-4">
-                A tua orde atual será preservada como a tua votaçom. A lista individual será substituída pela coletiva.
+                A tua ordemm atual será preservada como a tua votação. A lista individual será substituída pela coletiva.
             </p>
 
             <!-- Visibilidade -->
@@ -172,7 +172,7 @@
                     </button>
                     <span x-show="open" x-transition
                           class="absolute bottom-full left-0 mb-2 w-56 px-3 py-2 rounded-xl bg-gray-900/90 dark:bg-white/15 text-white text-[11px] leading-relaxed shadow-lg z-50 text-center"
-                          style="display: none;">Os elementos nom se vem antes de votar</span>
+                          style="display: none;">Os elementos não são visíveis antes de votar</span>
                 </span>
             </div>
 
@@ -192,7 +192,7 @@
     <!-- Apagar lista -->
     <div class="mb-5">
         <form method="POST" action="/lists/{{.List.ID}}/delete"
-              onsubmit="return confirm('Tens certeza de que queres apagar esta lista? Esta acçom nom se pode desfazer.')">
+              onsubmit="return confirm('Tens certeza de que queres apagar esta lista? Esta acção não pode ser desfeita.')">
             <button type="submit"
                     class="w-full text-center text-red-500 hover:text-red-600 text-sm font-medium py-2 rounded-xl hover:bg-red-50/50 dark:hover:bg-red-500/5 transition-colors">
                 Apagar lista

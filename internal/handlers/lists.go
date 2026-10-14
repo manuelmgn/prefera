@@ -17,7 +17,7 @@ func (h *Handler) ListCreate(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	h.renderPage(w, "list_create", map[string]interface{}{
 		"User":              user,
-		"Title":             "Criar lista",
+		"Title":             "Criar nova lista individual",
 		"DefaultVersusMode": user.DefaultVersusMode,
 	})
 }
@@ -60,7 +60,7 @@ func (h *Handler) ListSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(cleanItems) == 0 {
-		http.Error(w, "Engade ao menos um elemento", http.StatusBadRequest)
+		http.Error(w, "Adiciona pelo menos um elemento", http.StatusBadRequest)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *Handler) ListView(w http.ResponseWriter, r *http.Request) {
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h *Handler) ListEdit(w http.ResponseWriter, r *http.Request) {
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (h *Handler) ListUpdate(w http.ResponseWriter, r *http.Request) {
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -214,7 +214,7 @@ func (h *Handler) ListDelete(w http.ResponseWriter, r *http.Request) {
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -242,7 +242,7 @@ func (h *Handler) ListReorder(w http.ResponseWriter, r *http.Request) {
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -276,7 +276,7 @@ func (h *Handler) ListClone(w http.ResponseWriter, r *http.Request) {
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 
@@ -305,7 +305,7 @@ func (h *Handler) ListUpdateItemDetails(w http.ResponseWriter, r *http.Request) 
 
 	list, err := models.GetListByID(h.db, listID)
 	if err != nil {
-		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		http.Error(w, "Lista não encontrada", http.StatusNotFound)
 		return
 	}
 

@@ -1,34 +1,34 @@
 {{define "list_create"}}
 <div x-data="listCreator()" class="max-w-lg mx-auto">
-    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Criar nova lista</h2>
-    <p class="text-sm text-gray-400 dark:text-gray-500 mb-7">Engade elementos e escolhe como os ordenar</p>
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1">Criar nova lista individual</h2>
+    <p class="text-sm text-gray-400 dark:text-gray-500 mb-7">Adiciona elementos e escolhe como os ordenar</p>
 
     <!-- Nome -->
     <div class="mb-5">
-        <label for="list-name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nome da lista</label>
+        <label for="list-name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nome</label>
         <input type="text" id="list-name" x-model="listName" maxlength="150"
                class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200"
                placeholder="Ex: Melhores filmes de terror">
     </div>
 
-    <!-- Descriçom -->
+    <!-- Descrição -->
     <div class="mb-5">
-        <label for="list-description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descriçom (opcional)</label>
+        <label for="list-description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Descrição (opcional)</label>
         <textarea id="list-description" x-model="description" rows="2" maxlength="500"
                   class="w-full px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200 resize-none"
-                  placeholder="Breve descriçom da lista"></textarea>
+                  placeholder="Breve descrição da lista"></textarea>
     </div>
 
-    <!-- Engadir elementos -->
+    <!-- Adicionar elementos -->
     <div class="flex gap-2 mb-2">
         <input type="text" x-model="newItem" maxlength="200"
                @keydown.enter.prevent="addItem()"
                x-ref="itemInput"
                class="flex-1 px-4 py-3.5 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all text-[15px] text-gray-800 dark:text-gray-200"
-               placeholder="Escreve um elemento e preme Enter">
+               placeholder="Escreve um elemento e prime Enter">
         <button @click="addItem()" type="button"
                 class="bg-gray-900 dark:bg-white/10 text-white px-5 py-3.5 rounded-2xl text-sm font-semibold hover:bg-gray-800 dark:hover:bg-white/15 transition-colors whitespace-nowrap active:scale-[0.97]">
-            Engadir
+            Adicionar
         </button>
     </div>
 
@@ -64,7 +64,7 @@
                             <input type="url" x-model="item.link" maxlength="500"
                                    class="w-full mt-1 px-3 py-2 bg-white/50 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-[13px] text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 dark:focus:border-violet-500 outline-none transition-all"
                                    :class="!linkOk ? 'border-red-400 dark:border-red-500' : ''">
-                            <p x-show="!linkOk" class="text-[10px] text-red-500 mt-1">Ligaçom nom válida</p>
+                            <p x-show="!linkOk" class="text-[10px] text-red-500 mt-1">Ligação não válida</p>
                         </div>
                         <div x-data="imageUploader(item)">
                             {{template "item_label_image"}}
@@ -93,7 +93,7 @@
         </div>
     </div>
 
-    <!-- Botons de ordenaçom -->
+    <!-- Botões de ordenação -->
     <div>
         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Como queres ordenar?</p>
         <div class="flex">
@@ -106,7 +106,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                 </svg>
-                <span class="text-[14px] font-semibold">Orde manual</span>
+                <span class="text-[14px] font-semibold">Ordem manual</span>
             </button>
             <button @click="showVersus = !showVersus" type="button"
                     :disabled="items.length < 2 || !listName.trim()"
@@ -145,11 +145,11 @@
             </p>
             <button @click="saveList('versus')" type="button"
                     :disabled="items.length < 2 || !listName.trim()"
-                    class="w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed">
+                    class="w-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white py-3.5 rounded-2xl text-[15px] font-semibold hover:shadow-lg hover:shadow-violet-500/20 transition-all duration-300 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed">
                 Começar Versus
             </button>
         </div>
-        <p x-show="items.length < 2" class="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">Engade ao menos 2 elementos</p>
+        <p x-show="items.length < 2" class="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">Adiciona pelo menos 2 elementos</p>
     </div>
 
     <!-- Hidden form -->

@@ -110,7 +110,7 @@ func (h *Handler) LoginSubmit(w http.ResponseWriter, r *http.Request) {
 			})
 		} else {
 			remaining := 3 - attempts
-			msg := "Utilizador ou palavra-chave incorrectos"
+			msg := "Utilizador ou palavra-passe incorrectos"
 			if remaining <= 2 {
 				msg = msg + " (" + strconv.Itoa(remaining) + " tentativa"
 				if remaining != 1 {
@@ -221,7 +221,7 @@ func (h *Handler) PasswordChangePage(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	h.renderPage(w, "password_change", map[string]interface{}{
 		"User":  user,
-		"Title": "Mudar palavra-chave",
+		"Title": "Mudar palavra-passe",
 	})
 }
 
@@ -235,7 +235,7 @@ func (h *Handler) PasswordChangeSubmit(w http.ResponseWriter, r *http.Request) {
 	if len(current) > MaxPasswordLen || len(newPass) > MaxPasswordLen {
 		h.renderPage(w, "password_change", map[string]interface{}{
 			"User":  user,
-			"Title": "Mudar palavra-chave",
+			"Title": "Mudar palavra-passe",
 			"Error": "Palavra-chave demasiado longa",
 		})
 		return
@@ -244,8 +244,8 @@ func (h *Handler) PasswordChangeSubmit(w http.ResponseWriter, r *http.Request) {
 	if newPass != confirm {
 		h.renderPage(w, "password_change", map[string]interface{}{
 			"User":  user,
-			"Title": "Mudar palavra-chave",
-			"Error": "As palavras-chave nom coincidem",
+			"Title": "Mudar palavra-passe",
+			"Error": "As palavras-passe não coincidem",
 		})
 		return
 	}
@@ -253,20 +253,20 @@ func (h *Handler) PasswordChangeSubmit(w http.ResponseWriter, r *http.Request) {
 	if len(newPass) < 6 {
 		h.renderPage(w, "password_change", map[string]interface{}{
 			"User":  user,
-			"Title": "Mudar palavra-chave",
-			"Error": "A nova palavra-chave deve ter ao menos 6 caracteres",
+			"Title": "Mudar palavra-passe",
+			"Error": "A nova palavra-passe deve ter ao menos 6 caracteres",
 		})
 		return
 	}
 
 	if err := h.auth.ChangePassword(user.ID, current, newPass); err != nil {
-		msg := "Erro ao mudar a palavra-chave"
+		msg := "Erro ao mudar a palavra-passe"
 		if err == auth.ErrWrongPassword {
 			msg = "Palavra-chave actual incorrecta"
 		}
 		h.renderPage(w, "password_change", map[string]interface{}{
 			"User":  user,
-			"Title": "Mudar palavra-chave",
+			"Title": "Mudar palavra-passe",
 			"Error": msg,
 		})
 		return
@@ -359,7 +359,7 @@ func (h *Handler) AdminPanel(w http.ResponseWriter, r *http.Request) {
 
 	h.renderPage(w, "admin", map[string]interface{}{
 		"User":            user,
-		"Title":           "Painel de administraçom",
+		"Title":           "Painel de administração",
 		"UserStats":       stats,
 		"CollectiveStats": cStats,
 		"Success":         r.URL.Query().Get("success"),
@@ -380,12 +380,12 @@ func (h *Handler) AdminCreateUser(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if username == "" || password == "" {
-		http.Redirect(w, r, "/admin?error=Nome+de+utilizador+e+palavra-chave+som+obrigatórios", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin?error=Nome+de+utilizador+e+palavra-passe+som+obrigatórios", http.StatusSeeOther)
 		return
 	}
 
 	if len(password) < 6 {
-		http.Redirect(w, r, "/admin?error=A+palavra-chave+deve+ter+ao+menos+6+caracteres", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin?error=A+palavra-passe+deve+ter+ao+menos+6+caracteres", http.StatusSeeOther)
 		return
 	}
 
@@ -475,7 +475,7 @@ func (h *Handler) AdminChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	newPassword := r.FormValue("new_password")
 	if len(newPassword) < 6 {
-		http.Redirect(w, r, "/admin?error=A+palavra-chave+deve+ter+ao+menos+6+caracteres", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin?error=A+palavra-passe+deve+ter+ao+menos+6+caracteres", http.StatusSeeOther)
 		return
 	}
 
@@ -487,7 +487,7 @@ func (h *Handler) AdminChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.db.Exec("UPDATE users SET password_hash = $1 WHERE id = $2", hash, targetID)
 	if err != nil {
-		http.Redirect(w, r, "/admin?error=Erro+ao+mudar+palavra-chave", http.StatusSeeOther)
+		http.Redirect(w, r, "/admin?error=Erro+ao+mudar+palavra-passe", http.StatusSeeOther)
 		return
 	}
 
@@ -515,17 +515,17 @@ func (h *Handler) RegisterSubmit(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if username == "" || email == "" || password == "" {
-		renderError("Nome de utilizador, email e palavra-chave som obrigatórios")
+		renderError("Nome de utilizador, email e palavra-passe som obrigatórios")
 		return
 	}
 
 	if !strings.Contains(email, "@") || !strings.Contains(email, ".") {
-		renderError("O email nom parece válido")
+		renderError("O email não parece válido")
 		return
 	}
 
 	if len(password) < 6 {
-		renderError("A palavra-chave deve ter ao menos 6 caracteres")
+		renderError("A palavra-passe deve ter ao menos 6 caracteres")
 		return
 	}
 
