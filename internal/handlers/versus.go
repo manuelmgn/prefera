@@ -217,8 +217,9 @@ func (h *Handler) VersusUndo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// VersusResult renders the final result with drag-and-drop reordering.
-// For collective shadow lists, syncs the result and redirects.
+// VersusResult renders the final ranking and lets the user tweak the order
+// before confirming. Collective shadow lists are synced so the vote is
+// already saved; VersusSave then drops the shadow list.
 func (h *Handler) VersusResult(w http.ResponseWriter, r *http.Request) {
 	user := auth.UserFromContext(r.Context())
 	sessionID, err := strconv.Atoi(chi.URLParam(r, "sid"))
@@ -233,39 +234,42 @@ func (h *Handler) VersusResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Apply results if the tournament has finished
-	if session.Finished {
-		models.ApplyVersusResults(h.db, sessionID)
-	}
-
-	// If this is a collective shadow list, sync and redirect
-	var collectiveSourceID sql.NullInt64
-	h.db.QueryRow("SELECT collective_source_id FROM lists WHERE id = $1", session.ListID).Scan(&collectiveSourceID)
-	if collectiveSourceID.Valid && collectiveSourceID.Int64 > 0 {
-		// Sync the versus result back to the collective list
-		models.SyncVersusResultToCollective(h.db, session.ListID)
-		// Delete the shadow list and its versus session (safe to do after sync)
-		h.db.Exec("DELETE FROM lists WHERE id = $1", session.ListID)
-		http.Redirect(w, r, "/collective/"+strconv.Itoa(int(collectiveSourceID.Int64)), http.StatusSeeOther)
-		return
-	}
-
 	list, err := models.GetListByID(h.db, session.ListID)
 	if err != nil {
 		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
 		return
 	}
+	if list.UserID != user.ID {
+		http.Error(w, "Sem permissom", http.StatusForbidden)
+		return
+	}
+
+	// Apply results if the tournament has finished
+	if session.Finished {
+		models.ApplyVersusResults(h.db, sessionID)
+		list, _ = models.GetListByID(h.db, session.ListID)
+	}
+
+	var collective *models.CollectiveList
+	var collectiveSourceID sql.NullInt64
+	h.db.QueryRow("SELECT collective_source_id FROM lists WHERE id = $1", session.ListID).Scan(&collectiveSourceID)
+	if collectiveSourceID.Valid && collectiveSourceID.Int64 > 0 {
+		models.SyncVersusResultToCollective(h.db, session.ListID)
+		collective, _ = models.GetCollectiveByID(h.db, int(collectiveSourceID.Int64))
+	}
 
 	h.renderPage(w, "versus_result", map[string]interface{}{
-		"User":    user,
-		"Title":   "Resultado Versus",
-		"Session": session,
-		"List":    list,
+		"User":       user,
+		"Title":      "Resultado Versus",
+		"Session":    session,
+		"List":       list,
+		"Collective": collective,
 	})
 }
 
 // VersusSave saves the final item order after a Versus session.
 func (h *Handler) VersusSave(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
 	sessionID, err := strconv.Atoi(chi.URLParam(r, "sid"))
 	if err != nil {
 		http.Error(w, "ID inválido", http.StatusBadRequest)
@@ -278,5 +282,24 @@ func (h *Handler) VersusSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/lists/"+strconv.Itoa(session.ListID)+"/edit", http.StatusSeeOther)
+	list, err := models.GetListByID(h.db, session.ListID)
+	if err != nil {
+		http.Error(w, "Lista nom encontrada", http.StatusNotFound)
+		return
+	}
+	if list.UserID != user.ID {
+		http.Error(w, "Sem permissom", http.StatusForbidden)
+		return
+	}
+
+	var collectiveSourceID sql.NullInt64
+	h.db.QueryRow("SELECT collective_source_id FROM lists WHERE id = $1", session.ListID).Scan(&collectiveSourceID)
+	if collectiveSourceID.Valid && collectiveSourceID.Int64 > 0 {
+		models.SyncVersusResultToCollective(h.db, session.ListID)
+		models.DeleteShadowLists(h.db, int(collectiveSourceID.Int64), user.ID)
+		http.Redirect(w, r, "/collective/"+strconv.Itoa(int(collectiveSourceID.Int64)), http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/lists/"+strconv.Itoa(session.ListID), http.StatusSeeOther)
 }

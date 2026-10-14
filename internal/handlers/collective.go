@@ -130,7 +130,12 @@ func (h *Handler) CollectiveView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hasRanked, _ := models.HasUserRanked(h.db, collectiveID, user.ID)
-	items, _ := models.GetCollectiveItems(h.db, collectiveID)
+	var items []models.CollectiveItem
+	if hasRanked {
+		items, _ = models.GetUserRankingItems(h.db, collectiveID, user.ID)
+	} else {
+		items, _ = models.GetCollectiveItems(h.db, collectiveID)
+	}
 
 	// If hide_items is active, hide results and rankings for users who haven't voted
 	// The creator always sees everything

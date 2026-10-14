@@ -703,6 +703,13 @@ func CreateShadowListForVersus(db *sql.DB, collectiveID, userID int) (int, error
 	}
 	defer tx.Rollback()
 
+	if _, err := tx.Exec(
+		"DELETE FROM lists WHERE user_id = $1 AND collective_source_id = $2",
+		userID, collectiveID,
+	); err != nil {
+		return 0, err
+	}
+
 	var listID int
 	err = tx.QueryRow(
 		"INSERT INTO lists (user_id, name, description, is_public, collective_source_id) VALUES ($1, $2, $3, 0, $4) RETURNING id",
@@ -727,6 +734,65 @@ func CreateShadowListForVersus(db *sql.DB, collectiveID, userID int) (int, error
 	}
 
 	return listID, nil
+}
+
+// DeleteShadowLists removes temporary versus lists for a user on a collective.
+func DeleteShadowLists(db *sql.DB, collectiveID, userID int) error {
+	_, err := db.Exec(
+		"DELETE FROM lists WHERE user_id = $1 AND collective_source_id = $2",
+		userID, collectiveID,
+	)
+	return err
+}
+
+// GetUserRankingItems returns a user's ranking for a collective list, in rank order.
+// If the user has not ranked yet, it returns the canonical item order so they can
+// start a first manual vote from the predefined list.
+func GetUserRankingItems(db *sql.DB, collectiveID, userID int) ([]CollectiveItem, error) {
+	rows, err := db.Query(`
+		SELECT ci.id, ci.collective_id, ci.name, ci.description, ci.link, ci.image, cr.position
+		FROM collective_rankings cr
+		JOIN collective_items ci ON cr.item_id = ci.id
+		WHERE cr.collective_id = $1 AND cr.user_id = $2
+		ORDER BY cr.position
+	`, collectiveID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ranked []CollectiveItem
+	seen := make(map[int]bool)
+	for rows.Next() {
+		var item CollectiveItem
+		if err := rows.Scan(&item.ID, &item.CollectiveID, &item.Name, &item.Description, &item.Link, &item.Image, &item.Position); err != nil {
+			return nil, err
+		}
+		seen[item.ID] = true
+		ranked = append(ranked, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	canonical, err := GetCollectiveItems(db, collectiveID)
+	if err != nil {
+		return nil, err
+	}
+	if len(ranked) == 0 {
+		return canonical, nil
+	}
+
+	pos := len(ranked) + 1
+	for _, item := range canonical {
+		if seen[item.ID] {
+			continue
+		}
+		item.Position = pos
+		ranked = append(ranked, item)
+		pos++
+	}
+	return ranked, nil
 }
 
 // SyncVersusResultToCollective copies the item positions from a shadow list back
