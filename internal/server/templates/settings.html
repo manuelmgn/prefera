@@ -20,7 +20,7 @@
     {{end}}
 
     <!-- Perfil e preferências -->
-    <form method="POST" action="/settings" data-autosave data-autosave-toast="Gardado correctamente" x-data="{
+    <form method="POST" action="/settings" data-autosave data-autosave-toast="Guardado com sucesso" x-data="{
         displayName: '{{.User.DisplayName}}',
         publicOn: {{if .User.DefaultPublic}}true{{else}}false{{end}},
         versusMode: '{{.User.DefaultVersusMode}}',

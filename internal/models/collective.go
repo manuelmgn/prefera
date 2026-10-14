@@ -703,11 +703,17 @@ func CreateShadowListForVersus(db *sql.DB, collectiveID, userID int) (int, error
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(
+	shadowCleanup := []string{
+		"DELETE FROM versus_matches WHERE session_id IN (SELECT id FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE user_id = $1 AND collective_source_id = $2))",
+		"DELETE FROM versus_standings WHERE session_id IN (SELECT id FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE user_id = $1 AND collective_source_id = $2))",
+		"DELETE FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE user_id = $1 AND collective_source_id = $2)",
+		"DELETE FROM list_items WHERE list_id IN (SELECT id FROM lists WHERE user_id = $1 AND collective_source_id = $2)",
 		"DELETE FROM lists WHERE user_id = $1 AND collective_source_id = $2",
-		userID, collectiveID,
-	); err != nil {
-		return 0, err
+	}
+	for _, q := range shadowCleanup {
+		if _, err := tx.Exec(q, userID, collectiveID); err != nil {
+			return 0, err
+		}
 	}
 
 	var listID int
@@ -738,11 +744,25 @@ func CreateShadowListForVersus(db *sql.DB, collectiveID, userID int) (int, error
 
 // DeleteShadowLists removes temporary versus lists for a user on a collective.
 func DeleteShadowLists(db *sql.DB, collectiveID, userID int) error {
-	_, err := db.Exec(
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	queries := []string{
+		"DELETE FROM versus_matches WHERE session_id IN (SELECT id FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE user_id = $1 AND collective_source_id = $2))",
+		"DELETE FROM versus_standings WHERE session_id IN (SELECT id FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE user_id = $1 AND collective_source_id = $2))",
+		"DELETE FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE user_id = $1 AND collective_source_id = $2)",
+		"DELETE FROM list_items WHERE list_id IN (SELECT id FROM lists WHERE user_id = $1 AND collective_source_id = $2)",
 		"DELETE FROM lists WHERE user_id = $1 AND collective_source_id = $2",
-		userID, collectiveID,
-	)
-	return err
+	}
+	for _, q := range queries {
+		if _, err := tx.Exec(q, userID, collectiveID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // GetUserRankingItems returns a user's ranking for a collective list, in rank order.
@@ -968,6 +988,11 @@ func DeleteCollective(db *sql.DB, collectiveID int) error {
 	defer tx.Rollback()
 
 	queries := []string{
+		"DELETE FROM versus_matches WHERE session_id IN (SELECT id FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE collective_source_id = $1))",
+		"DELETE FROM versus_standings WHERE session_id IN (SELECT id FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE collective_source_id = $1))",
+		"DELETE FROM versus_sessions WHERE list_id IN (SELECT id FROM lists WHERE collective_source_id = $1)",
+		"DELETE FROM list_items WHERE list_id IN (SELECT id FROM lists WHERE collective_source_id = $1)",
+		"DELETE FROM lists WHERE collective_source_id = $1",
 		"DELETE FROM collective_rankings WHERE collective_id = $1",
 		"DELETE FROM collective_access WHERE collective_id = $1",
 		"DELETE FROM collective_participants WHERE collective_id = $1",

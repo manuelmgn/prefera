@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"html/template"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -491,6 +492,7 @@ func (h *Handler) CollectiveDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := models.DeleteCollective(h.db, collectiveID); err != nil {
+		log.Printf("CollectiveDelete: failed to delete collective %d: %v", collectiveID, err)
 		http.Error(w, "Erro ao apagar", http.StatusInternalServerError)
 		return
 	}

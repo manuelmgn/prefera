@@ -4,7 +4,7 @@
     <p class="text-sm text-gray-400 dark:text-gray-500 mb-7">Configura a lista e as permissons</p>
 
     <!-- Metadados + configuraçom (gardado automático) -->
-    <form method="POST" action="/collective/{{.Collective.ID}}/update" data-autosave
+    <form method="POST" action="/collective/{{.Collective.ID}}/update" data-autosave data-autosave-toast="Guardado com sucesso"
           x-data="collectiveSettings({ mode: '{{.Mode}}', hideItems: true, collectiveId: {{.Collective.ID}}, shareCode: '{{.Collective.ShareCode}}', shared: {{.AccessUsersJSON}} })"
           class="ios-card rounded-2xl overflow-hidden mb-5">
         <div class="p-5 space-y-4">
@@ -146,6 +146,7 @@
             <form method="POST" action="/collective/{{$.Collective.ID}}/items/{{.ID}}/details"
                   x-data="itemDetailsForm('{{.Link}}', '{{.Image}}')"
                   data-autosave
+                  data-autosave-toast="Guardado com sucesso"
                   class="px-5 py-4">
                 <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{.Name}}</p>
                 <div class="space-y-2.5">

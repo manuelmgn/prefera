@@ -97,15 +97,17 @@ function saveOrder(listID) {
             var btn = document.querySelector('.btn-save-order');
             if (btn) {
                 var originalText = btn.textContent;
-                btn.textContent = 'Gardado!';
+                btn.textContent = 'Guardado!';
                 btn.disabled = true;
                 setTimeout(function() {
                     btn.textContent = originalText;
                     btn.disabled = false;
                 }, 1500);
+            } else {
+                showToast('Guardado com sucesso');
             }
         } else {
-            showToast('Erro ao gardar a orde');
+            showToast('Erro ao guardar a ordem');
         }
     }).catch(function() {
         showToast('Erro de rede. Tenta de novo.');
@@ -114,18 +116,23 @@ function saveOrder(listID) {
 
 // --- Autosave ---------------------------------------------------------------
 // Forms marked with data-autosave submit themselves automatically:
-// text fields debounce 800ms, other changes (toggles, selects) save after 150ms.
+// text fields debounce 1500ms, other changes (toggles, selects) save after 300ms.
 
 function performAutosave(form) {
     var status = form.querySelector('[data-autosave-status]');
     var toastMsg = form.getAttribute('data-autosave-toast');
-    if (status) status.textContent = 'A gardar…';
+    if (toastMsg === null || toastMsg === undefined) {
+        toastMsg = 'Guardado com sucesso';
+    } else if (toastMsg === 'none' || toastMsg === 'false') {
+        toastMsg = null;
+    }
+    if (status) status.textContent = 'A guardar…';
     fetch(form.action, {
         method: 'POST',
         body: new FormData(form),
         headers: { 'X-Autosave': '1' }
     }).then(function(resp) {
-        if (status) status.textContent = resp.ok ? 'Gardado automaticamente' : 'Erro ao gardar';
+        if (status) status.textContent = resp.ok ? 'Guardado automaticamente' : 'Erro ao guardar';
         if (toastMsg && resp.ok) showToast(toastMsg);
     }).catch(function() {
         if (status) status.textContent = 'Erro de rede';
@@ -147,12 +154,12 @@ function initAutosaveForms() {
     document.querySelectorAll('form[data-autosave]').forEach(function(form) {
         form.addEventListener('input', function(e) {
             clearTimeout(form._autosaveTimer);
-            form._autosaveTimer = setTimeout(function() { performAutosave(form); }, 800);
+            form._autosaveTimer = setTimeout(function() { performAutosave(form); }, 1500);
         });
         form.addEventListener('change', function(e) {
             if (e.target.type === 'file') return;
             clearTimeout(form._autosaveTimer);
-            form._autosaveTimer = setTimeout(function() { performAutosave(form); }, 150);
+            form._autosaveTimer = setTimeout(function() { performAutosave(form); }, 300);
         });
     });
 }
@@ -170,14 +177,16 @@ function applyTheme(pref) {
 function showToast(message) {
     var existing = document.querySelector('.app-toast');
     if (existing) existing.remove();
+    clearTimeout(window._toastTimer);
+    clearTimeout(window._toastRemoveTimer);
     var toast = document.createElement('div');
     toast.className = 'app-toast';
     toast.textContent = message;
     document.body.appendChild(toast);
     requestAnimationFrame(function() { toast.classList.add('app-toast-visible'); });
-    setTimeout(function() {
+    window._toastTimer = setTimeout(function() {
         toast.classList.remove('app-toast-visible');
-        setTimeout(function() { toast.remove(); }, 300);
+        window._toastRemoveTimer = setTimeout(function() { toast.remove(); }, 300);
     }, 2500);
 }
 
