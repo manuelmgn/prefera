@@ -145,6 +145,7 @@ func NewRouter(database *sql.DB) (http.Handler, error) {
 		r.Post("/collective/{id}/versus", h.CollectiveVersusStart)
 		r.Post("/collective/{id}/delete", h.CollectiveDelete)
 		r.Post("/collective/{id}/delete-votes", h.CollectiveDeleteVotes)
+		r.Post("/collective/{id}/clone", h.CollectiveClone)
 		r.Post("/lists/{id}/convert-to-collective", h.CollectiveConvertFromList)
 		r.Post("/collective/{id}/items/{itemId}/details", h.CollectiveUpdateItemDetails)
 		r.Post("/collective/{id}/access", h.CollectiveAddAccess)

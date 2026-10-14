@@ -981,3 +981,56 @@ func DeleteCollective(db *sql.DB, collectiveID int) error {
 	}
 	return tx.Commit()
 }
+
+// CloneCollective creates a copy of a collective list for a new creator.
+// Only metadata and items are copied; votes and participants are not.
+func CloneCollective(db *sql.DB, sourceID, newCreatorID int) (int, error) {
+	src, err := GetCollectiveByID(db, sourceID)
+	if err != nil {
+		return 0, err
+	}
+	items, err := GetCollectiveItems(db, sourceID)
+	if err != nil {
+		return 0, err
+	}
+
+	code, err := GenerateShareCode(db)
+	if err != nil {
+		return 0, err
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	var newID int
+	err = tx.QueryRow(
+		"INSERT INTO collective_lists (creator_id, name, description, share_code, is_public, vote_permission, hide_items) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+		newCreatorID, src.Name, src.Description, code, src.IsPublic, src.VotePermission, src.HideItems,
+	).Scan(&newID)
+	if err != nil {
+		return 0, err
+	}
+
+	for i, item := range items {
+		_, err = tx.Exec(
+			"INSERT INTO collective_items (collective_id, name, description, link, image, position) VALUES ($1, $2, $3, $4, $5, $6)",
+			newID, item.Name, item.Description, item.Link, item.Image, i+1,
+		)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	_, err = tx.Exec(
+		"INSERT INTO collective_participants (collective_id, user_id) VALUES ($1, $2)",
+		newID, newCreatorID,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	return newID, tx.Commit()
+}

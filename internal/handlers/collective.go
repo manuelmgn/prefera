@@ -627,3 +627,27 @@ func (h *Handler) CollectiveRemoveAccess(w http.ResponseWriter, r *http.Request)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// CollectiveClone creates a copy of a collective list for the current user.
+// Only the creator (or any participant) can clone a list they can view.
+func (h *Handler) CollectiveClone(w http.ResponseWriter, r *http.Request) {
+	user := auth.UserFromContext(r.Context())
+	collectiveID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	if !models.CanUserView(h.db, collectiveID, user.ID) {
+		http.Error(w, "Sem permissom", http.StatusForbidden)
+		return
+	}
+
+	newID, err := models.CloneCollective(h.db, collectiveID, user.ID)
+	if err != nil {
+		http.Error(w, "Erro ao clonar", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/collective/"+strconv.Itoa(newID)+"/edit", http.StatusSeeOther)
+}

@@ -136,7 +136,7 @@
     </div>
     {{end}}
 
-    <!-- 5. Açons do criador: copiar link + editar -->
+    <!-- 5. Açons do criador: copiar link + clonar + editar -->
     {{if .IsCreator}}
     <div class="flex gap-3 mb-6">
         <button type="button" onclick="copyShareLink('{{.Collective.ShareCode}}')"
@@ -146,15 +146,23 @@
             </svg>
             <span class="text-[13px] font-semibold text-center leading-tight px-2">Copiar link de partilha</span>
         </button>
+        <form method="POST" action="/collective/{{.Collective.ID}}/clone" class="flex-1">
+            <button type="submit"
+                    class="w-full flex flex-col items-center justify-center gap-2.5 py-6 rounded-2xl border-2 border-gray-200/70 dark:border-white/10 bg-gray-50/50 dark:bg-white/[0.03] text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-200 active:scale-[0.98]">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <span class="text-[13px] font-semibold text-center leading-tight px-2">Criar nova a partir desta</span>
+            </button>
+        </form>
         <a href="/collective/{{.Collective.ID}}/edit"
            class="flex-1 flex flex-col items-center justify-center gap-2.5 py-6 rounded-2xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 active:scale-[0.98]">
             <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
             </svg>
-            <span class="text-[13px] font-semibold text-center leading-tight px-2">Editar lista coletiva</span>
+            <span class="text-[13px] font-semibold text-center leading-tight px-2">Editar lista</span>
         </a>
     </div>
-    {{end}}
 
     <a href="/" class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-violet-500 transition">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
