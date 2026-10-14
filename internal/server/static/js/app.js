@@ -229,6 +229,7 @@ function tooltip() {
 function imageLooksOk(v) {
     const lower = (v || '').trim().toLowerCase();
     return lower.includes('i.ibb.co/') || lower.includes('ibb.co/') ||
+        lower.includes('files.catbox.moe/') || lower.includes('catbox.moe/') ||
         /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)(\?|#|$)/.test(lower);
 }
 

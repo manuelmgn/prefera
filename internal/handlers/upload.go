@@ -3,21 +3,27 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
 const catboxUploadURL = "https://catbox.moe/user/api.php"
+const imgbbUploadURL = "https://api.imgbb.com/1/upload"
+const imgbbAPIKey = "2af9b79fe6bb155e02344bf3185e8196"
+
 const maxUploadSize = 10 << 20 // 10 MB
-const uploadTimeout = 30 * time.Second
+const uploadTimeout = 25 * time.Second
 
 // uploadHTTPClient has explicit timeouts so a hung storage service can't
 // stall the request until the platform kills it.
@@ -30,6 +36,22 @@ var uploadHTTPClient = &http.Client{
 	},
 }
 
+// imgbbResponse represents the IMGBB API response
+type imgbbResponse struct {
+	Data struct {
+		DisplayURL string `json:"display_url"`
+		Image      struct {
+			URL string `json:"url"`
+		} `json:"image"`
+	} `json:"data"`
+	Error struct {
+		Message string `json:"message"`
+		Code    int    `json:"code"`
+	} `json:"error"`
+	Success bool `json:"success"`
+	Status  int  `json:"status"`
+}
+
 // uploadErrorJSON writes a JSON error body with a user-friendly message.
 func uploadErrorJSON(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
@@ -38,7 +60,7 @@ func uploadErrorJSON(w http.ResponseWriter, status int, msg string) {
 }
 
 // isTimeoutError reports whether err is a client-side timeout or a
-// context-deadline cancellation (as opposed to the service rejecting us).
+// context-deadline cancellation.
 func isTimeoutError(err error) bool {
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
@@ -47,10 +69,125 @@ func isTimeoutError(err error) bool {
 	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
 }
 
-// UploadImage is the server-side proxy for the image storage service (catbox.moe).
-// Receives a multipart file (field "image") and forwards it to catbox.
+// sanitizeUploadFilename ensures the file passed to the external service
+// has a clean basename and a recognized image extension.
+func sanitizeUploadFilename(orig string, mimeType string) string {
+	base := filepath.Base(orig)
+	ext := strings.ToLower(filepath.Ext(base))
+
+	if ext == "" || ext == "." {
+		switch {
+		case strings.Contains(mimeType, "png"):
+			ext = ".png"
+		case strings.Contains(mimeType, "webp"):
+			ext = ".webp"
+		case strings.Contains(mimeType, "gif"):
+			ext = ".gif"
+		default:
+			ext = ".jpg"
+		}
+	}
+
+	cleanName := strings.TrimSuffix(base, filepath.Ext(base))
+	if cleanName == "" || cleanName == "." {
+		cleanName = "upload"
+	}
+	return cleanName + ext
+}
+
+// uploadToCatbox uploads an image to catbox.moe.
+func uploadToCatbox(ctx context.Context, filename string, imgBytes []byte) (string, error) {
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	if err := mw.WriteField("reqtype", "fileupload"); err != nil {
+		return "", fmt.Errorf("catbox: failed to write reqtype: %w", err)
+	}
+	part, err := mw.CreateFormFile("fileToUpload", filename)
+	if err != nil {
+		return "", fmt.Errorf("catbox: failed to create form file: %w", err)
+	}
+	if _, err := part.Write(imgBytes); err != nil {
+		return "", fmt.Errorf("catbox: failed to write file bytes: %w", err)
+	}
+	if err := mw.Close(); err != nil {
+		return "", fmt.Errorf("catbox: failed to close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, catboxUploadURL, &body)
+	if err != nil {
+		return "", fmt.Errorf("catbox: failed to build request: %w", err)
+	}
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "*/*")
+
+	resp, err := uploadHTTPClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("catbox: request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
+	if err != nil {
+		return "", fmt.Errorf("catbox: failed to read response body: %w", err)
+	}
+
+	imageURL := strings.TrimSpace(string(respBody))
+	if resp.StatusCode != http.StatusOK || !strings.HasPrefix(imageURL, "https://") {
+		return "", fmt.Errorf("catbox rejected upload (status %d): %s", resp.StatusCode, imageURL)
+	}
+	if _, err := url.Parse(imageURL); err != nil {
+		return "", fmt.Errorf("catbox returned invalid URL (%s): %w", imageURL, err)
+	}
+
+	return imageURL, nil
+}
+
+// uploadToIMGBB uploads an image to IMGBB as a robust secondary provider.
+func uploadToIMGBB(ctx context.Context, filename string, imgBytes []byte) (string, error) {
+	encoded := base64.StdEncoding.EncodeToString(imgBytes)
+
+	formData := url.Values{}
+	formData.Set("key", imgbbAPIKey)
+	formData.Set("image", encoded)
+	formData.Set("name", filename)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, imgbbUploadURL, strings.NewReader(formData.Encode()))
+	if err != nil {
+		return "", fmt.Errorf("imgbb: failed to build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+	resp, err := uploadHTTPClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("imgbb: request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var imgbbResp imgbbResponse
+	if err := json.NewDecoder(resp.Body).Decode(&imgbbResp); err != nil {
+		return "", fmt.Errorf("imgbb: failed to decode response (status %d): %w", resp.StatusCode, err)
+	}
+
+	if !imgbbResp.Success {
+		return "", fmt.Errorf("imgbb rejected upload (status %d): %s", imgbbResp.Status, imgbbResp.Error.Message)
+	}
+
+	imageURL := imgbbResp.Data.DisplayURL
+	if imageURL == "" {
+		imageURL = imgbbResp.Data.Image.URL
+	}
+	if imageURL == "" {
+		return "", errors.New("imgbb: response did not include an image URL")
+	}
+
+	return imageURL, nil
+}
+
+// UploadImage is the server-side proxy for image storage.
+// Receives a multipart file (field "image") and uploads to Catbox with IMGBB fallback.
 // Returns JSON {"url": "..."} with the direct image URL.
-// All error messages are user-friendly (Galician) and include details.
 func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	// Limit request size
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize+1024)
@@ -76,14 +213,6 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify the file looks like an image
-	contentType := fileHeader.Header.Get("Content-Type")
-	if contentType != "" && !strings.HasPrefix(contentType, "image/") {
-		uploadErrorJSON(w, http.StatusBadRequest,
-			fmt.Sprintf("O ficheiro nom parece unha imaxe (tipo «%s»). Escolle un ficheiro de imaxe (JPG, PNG, GIF, WebP…).", contentType))
-		return
-	}
-
 	// Read the image bytes
 	imgBytes, err := io.ReadAll(file)
 	if err != nil {
@@ -92,77 +221,42 @@ func (h *Handler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build the multipart body catbox expects: reqtype=fileupload + fileToUpload
-	var body bytes.Buffer
-	mw := multipart.NewWriter(&body)
-	if err := mw.WriteField("reqtype", "fileupload"); err != nil {
-		uploadErrorJSON(w, http.StatusInternalServerError,
-			"Erro interno ao preparar a subida. Tenta de novo.")
-		return
+	// Verify content type (use DetectContentType if missing or generic)
+	contentType := fileHeader.Header.Get("Content-Type")
+	if contentType == "" || contentType == "application/octet-stream" {
+		contentType = http.DetectContentType(imgBytes)
 	}
-	part, err := mw.CreateFormFile("fileToUpload", fileHeader.Filename)
-	if err != nil {
-		uploadErrorJSON(w, http.StatusInternalServerError,
-			"Erro interno ao preparar a subida. Tenta de novo.")
-		return
-	}
-	if _, err := part.Write(imgBytes); err != nil {
-		uploadErrorJSON(w, http.StatusInternalServerError,
-			"Erro interno ao preparar a subida. Tenta de novo.")
-		return
-	}
-	if err := mw.Close(); err != nil {
-		uploadErrorJSON(w, http.StatusInternalServerError,
-			"Erro interno ao preparar a subida. Tenta de novo.")
+	if !strings.HasPrefix(contentType, "image/") {
+		uploadErrorJSON(w, http.StatusBadRequest,
+			fmt.Sprintf("O ficheiro nom parece unha imaxe (tipo «%s»). Escolle un ficheiro de imaxe (JPG, PNG, GIF, WebP…).", contentType))
 		return
 	}
 
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, catboxUploadURL, &body)
-	if err != nil {
-		uploadErrorJSON(w, http.StatusInternalServerError,
-			"Erro interno ao preparar a subida. Tenta de novo.")
-		return
-	}
-	req.Header.Set("Content-Type", mw.FormDataContentType())
+	filename := sanitizeUploadFilename(fileHeader.Filename, contentType)
 
-	resp, err := uploadHTTPClient.Do(req)
-	if err != nil {
-		if isTimeoutError(err) {
+	// Try Catbox first
+	imageURL, catboxErr := uploadToCatbox(r.Context(), filename, imgBytes)
+	if catboxErr != nil {
+		log.Printf("UploadImage: Catbox upload failed (%v), attempting IMGBB fallback...", catboxErr)
+
+		// Fallback to IMGBB
+		var imgbbErr error
+		imageURL, imgbbErr = uploadToIMGBB(r.Context(), filename, imgBytes)
+		if imgbbErr != nil {
+			log.Printf("UploadImage: IMGBB fallback failed as well (%v)", imgbbErr)
+
+			if isTimeoutError(catboxErr) || isTimeoutError(imgbbErr) {
+				uploadErrorJSON(w, http.StatusBadGateway,
+					"O servizo de imaxes demorouse demasiado en responder. Tenta de novo nuns segundos.")
+				return
+			}
 			uploadErrorJSON(w, http.StatusBadGateway,
-				"O servizo de imaxes demorouse demasiado en responder. Tenta de novo nuns segundos.")
+				"Nom foi possível guardar a imaxe nos servizos de almacenamento. Tenta de novo nuns segundos ou utiliza unha URL externa.")
 			return
 		}
-		uploadErrorJSON(w, http.StatusBadGateway,
-			"Nom foi possível contactar co servizo de almacenamento de imaxes. Verifica a tua conexom e tenta de novo.")
-		return
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
-	if err != nil {
-		uploadErrorJSON(w, http.StatusBadGateway,
-			"O servizo de imaxes respondeu de forma inesperada. Tenta de novo nuns segundos.")
-		return
-	}
-
-	// catbox returns the direct URL as plain text; anything else is an error message
-	imageURL := strings.TrimSpace(string(respBody))
-	if !strings.HasPrefix(imageURL, "https://") {
-		detail := imageURL
-		if detail == "" {
-			detail = fmt.Sprintf("HTTP %d", resp.StatusCode)
-		}
-		if len(detail) > 120 {
-			detail = detail[:120] + "…"
-		}
-		uploadErrorJSON(w, http.StatusBadGateway,
-			fmt.Sprintf("O servizo rexeitou a imaxe: %s. Se o problema persistir, pega a URL dunha imaxe xa alojada noutro sitio.", detail))
-		return
-	}
-	if _, err := url.Parse(imageURL); err != nil {
-		uploadErrorJSON(w, http.StatusBadGateway,
-			"O servizo respondeu cunha URL inválida. Tenta de novo nuns segundos.")
-		return
+		log.Printf("UploadImage: IMGBB fallback succeeded -> %s", imageURL)
+	} else {
+		log.Printf("UploadImage: Catbox upload succeeded -> %s", imageURL)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

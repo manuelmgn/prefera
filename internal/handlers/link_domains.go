@@ -109,8 +109,9 @@ func ValidateImageURL(url string) string {
 		return ""
 	}
 	lower := strings.ToLower(url)
-	// Accept IMGBB URLs (integrated upload service)
-	if strings.Contains(lower, "i.ibb.co/") || strings.Contains(lower, "ibb.co/") {
+	// Accept IMGBB and Catbox URLs (integrated upload services)
+	if strings.Contains(lower, "i.ibb.co/") || strings.Contains(lower, "ibb.co/") ||
+		strings.Contains(lower, "files.catbox.moe/") || strings.Contains(lower, "catbox.moe/") {
 		return url
 	}
 	// Accept URLs with a known image extension
